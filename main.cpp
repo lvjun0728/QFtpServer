@@ -1,5 +1,6 @@
 ﻿#include <QCoreApplication>
 #include "ftpserver.h"
+#include <QDebug>
 
 int main(int argc, char *argv[])
 {
@@ -13,7 +14,6 @@ int main(int argc, char *argv[])
     user_list.append(ftp_user1);
     user_list.append(ftp_user2);
     user_list.append(ftp_user3);
-
     FtpServer ftp_server(user_list,3000,10001,30);
     if(!ftp_server.initOk){
         qDebug()<<"初始化错误";

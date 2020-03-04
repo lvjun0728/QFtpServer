@@ -121,7 +121,11 @@ private:
     // Open a new passive data connection.
     inline void pasv(){
         int port = dataConnection->listen(encryptDataConnection);
+#if (FTP_RUN_MODE==FTP_MODE_LOCAL)
         reply(QString("227 Entering Passive Mode (%1,%2,%3).").arg(ftp_socket->localAddress().toString().replace('.',',')).arg(port/256).arg(port%256));
+#elif (FTP_RUN_MODE==FTP_MODE_SERVER)
+        reply(QString("227 Entering Passive Mode (%1,%2,%3).").arg(QString(SERVICE_IP).replace('.',',')).arg(port/256).arg(port%256));
+#endif
     }
     // List directory contents. Equivalent to 'ls' in UNIX, or 'dir' in DOS.
     inline void list(const QString &dir, bool nameListOnly){
