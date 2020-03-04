@@ -5,9 +5,9 @@ int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
 
-    FtpUser ftp_user1("D:","lvjun","890728");
-    FtpUser ftp_user2("E:","lvjun1","890728");
-    FtpUser ftp_user3("F:","lvjun2","890728");
+    FtpUser ftp_user1("D:","lvjun","123456");
+    FtpUser ftp_user2("E:","lvjun1","123456");
+    FtpUser ftp_user3("F:","lvjun2","123456");
 
     FtpUserList user_list;
     user_list.append(ftp_user1);
