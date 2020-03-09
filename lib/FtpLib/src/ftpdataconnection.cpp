@@ -7,14 +7,14 @@ FtpDataConnection::FtpDataConnection(FtpDataPortManage *port_manage, QObject *pa
     ftp_data_manage=port_manage;
 }
 
-void FtpDataConnection::scheduleConnectToHost(const QString &hostName, quint16 port, bool encrypt)
+void FtpDataConnection::scheduleConnectToHost(const QString &host_name, quint16 port, bool encrypt)
 {
     this->encrypt = encrypt;
     if(data_socket){
         delete data_socket;
         data_socket=nullptr;
     }
-    this->hostName = hostName;
+    this->host_name = host_name;
     this->port = port;
     isSocketReady = false;
     isWaitingForFtpCommand = true;
@@ -55,7 +55,7 @@ bool FtpDataConnection::setFtpCommand(FtpCommand *command)
     if (isActiveConnection) {
         data_socket = new QSslSocket(this);
         connect(data_socket, SIGNAL(connected()), this, SLOT(connected()));
-        data_socket->connectToHost(hostName, port);
+        data_socket->connectToHost(host_name, port);
     } else {
         startFtpCommand();
     }

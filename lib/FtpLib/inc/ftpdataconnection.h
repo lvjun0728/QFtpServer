@@ -20,7 +20,7 @@ public:
 
     // Connects to a host. Any existing data connections
     // or commands are aborted.
-    void scheduleConnectToHost(const QString &hostName, quint16 port, bool encrypt);
+    void scheduleConnectToHost(const QString &host_name, quint16 port, bool encrypt);
 
     // Starts listening for new data connections. Any existing data connections
     // or commands are aborted.
@@ -51,8 +51,8 @@ private:
     FtpDataPortManage *ftp_data_manage=nullptr;
 
     // Used for the active data connection (PORT command).
-    bool isActiveConnection;
-    QString hostName;
+    bool isActiveConnection;//是否为主动模式连接
+    QString host_name;
     quint16 port;
 };
 #endif // FTPDATACONNECTION_H

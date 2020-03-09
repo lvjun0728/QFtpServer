@@ -3,34 +3,38 @@
 
 void FtpControlConnection::run()
 {
-    ftp_socket=new QSslSocket(this);
-    ftp_socket->setSocketDescriptor(socket_fd);
+    ftp_cmd_socket=new QSslSocket(this);
+    ftp_cmd_socket->setSocketDescriptor(socket_fd);
 
-    connect(ftp_socket,SIGNAL(readyRead()),this,SLOT(acceptNewDataSlot()));
-    connect(ftp_socket,SIGNAL(disconnected()),this,SLOT(socketDisconnectSlot()));
+    connect(ftp_cmd_socket,SIGNAL(readyRead()),this,SLOT(acceptNewDataSlot()));
+    connect(ftp_cmd_socket,SIGNAL(disconnected()),this,SLOT(socketDisconnectSlot()));
 
     currentDirectory = "/";
     dataConnection =new FtpDataConnection(ftp_data_manage,this);//数据
-    reply("220 IotFtpServer");
+    reply("220 Welcome Login IotFtpServer");
     exec();
 }
 
 void FtpControlConnection::acceptNewDataSlot()
 {
-parse_next:
-    if(!ftp_socket->canReadLine()){
+    ftp_cmd_buf.append(ftp_cmd_socket->readAll());
+    int cmd_len=ftp_cmd_buf.lastIndexOf("\r\n");
+    if(cmd_len<0){//没有完整的命令码
         return;
     }
-    processCommand(QString::fromUtf8(ftp_socket->readLine()).trimmed());
-    goto parse_next;
+    cmd_len+=2;//包含 (\r\n) 字符
+    QStringList all_cmd_str=QString::fromUtf8(QByteArray(ftp_cmd_buf.data(),cmd_len)).split("\r\n");
+    for(int i=0;i<all_cmd_str.size()-1;i++){
+        processCommand(all_cmd_str.at(i).trimmed());
+    }
+    ftp_cmd_buf.remove(0,cmd_len);
 }
 
-void FtpControlConnection::processCommand(const QString &entireCommand)
+void FtpControlConnection::processCommand(const QString &entire_command)
 {
     QString command;
-    QString commandParameters;
-    parseCommand(entireCommand, &command, &commandParameters);
-
+    QString command_parameters;
+    parseCommand(entire_command,command,command_parameters);
     if (!verifyAuthentication(command)) {
         return;
     }
@@ -40,33 +44,33 @@ void FtpControlConnection::processCommand(const QString &entireCommand)
     if ("USER" == command) {
         reply("331 User name OK, need password.");
     } else if ("PASS" == command) {
-        pass(commandParameters);
+        pass(command_parameters);
     } else if ("QUIT" == command) {
         quit();
-    } else if ("AUTH" == command && "TLS" == commandParameters.toUpper()) {
+    } else if ("AUTH" == command && "TLS" == command_parameters.toUpper()) {
         auth();
     } else if ("FEAT" == command) {
         feat();
     } else if ("PWD" == command) {//获取当前目录
         reply(QString("257 \"%1\"").arg(currentDirectory));
     } else if ("CWD" == command) {//进入目录
-        cwd(commandParameters);
+        cwd(command_parameters);
     } else if ("TYPE" == command) {
         reply("200 Command okay.");
     } else if ("PORT" == command) { //主动模式
-        port(commandParameters);
+        port(command_parameters);
     } else if ("PASV" == command) { //被动模式
         pasv();
     } else if ("LIST" == command) {
-        list(toLocalPath(stripFlagL(commandParameters)), false);
+        list(toLocalPath(stripFlagL(command_parameters)), false);
     } else if ("RETR" == command) {
-        retr(toLocalPath(commandParameters));
+        retr(toLocalPath(command_parameters));
     } else if ("REST" == command) {
         reply("350 Requested file action pending further information.");
     } else if ("NLST" == command) {
-        list(toLocalPath(stripFlagL(commandParameters)), true);
+        list(toLocalPath(stripFlagL(command_parameters)), true);
     } else if ("SIZE" == command) {
-        size(toLocalPath(commandParameters));
+        size(toLocalPath(command_parameters));
     } else if ("SYST" == command) {
 #ifdef Q_OS_WIN
         reply("215 Windows");
@@ -74,53 +78,39 @@ void FtpControlConnection::processCommand(const QString &entireCommand)
 #ifdef Q_OS_LINUX
         reply("215 Linux");
 #endif
-#ifdef Q_OS_UNIX
-        reply("215 UNIX");
-#endif
     } else if ("PROT" == command) {
-        prot(commandParameters.toUpper());
+        prot(command_parameters.toUpper());
     } else if ("CDUP" == command) {
         cdup();
-    } else if ("OPTS" == command && "UTF8 ON" == commandParameters.toUpper()) {
+    } else if ("OPTS" == command && "UTF8 ON" == command_parameters.toUpper()) {
         reply("200 Command okay.");
-    } else if ("PBSZ" == command && "0" == commandParameters.toUpper()) {
+    } else if ("PBSZ" == command && "0" == command_parameters.toUpper()) {
         reply("200 Command okay.");
     } else if ("NOOP" == command) {
         reply("200 Command okay.");
     } else if ("STOR" == command) {
-        stor(toLocalPath(commandParameters));
+        stor(toLocalPath(command_parameters));
     } else if ("MKD" == command) {
-        mkd(toLocalPath(commandParameters));
+        mkd(toLocalPath(command_parameters));
     } else if ("RMD" == command) {
-        rmd(toLocalPath(commandParameters));
+        rmd(toLocalPath(command_parameters));
     } else if ("DELE" == command) {
-        dele(toLocalPath(commandParameters));
+        dele(toLocalPath(command_parameters));
     } else if ("RNFR" == command) {
         reply("350 Requested file action pending further information.");
     } else if ("RNTO" == command) {
-        rnto(toLocalPath(commandParameters));
+        rnto(toLocalPath(command_parameters));
     } else if ("APPE" == command) {
-        stor(toLocalPath(commandParameters), true);
+        stor(toLocalPath(command_parameters), true);
     } else {
         reply("502 Command not implemented.");
     }
-    lastProcessedCommand = entireCommand;
-}
-
-void FtpControlConnection::parseCommand(const QString &entireCommand, QString *command, QString *commandParameters)
-{
-    int pos = entireCommand.indexOf(' ');
-    if (-1 != pos) {
-        *command = entireCommand.left(pos).trimmed().toUpper();
-        *commandParameters = entireCommand.mid(pos+1).trimmed();
-    } else {
-        *command = entireCommand.trimmed().toUpper();
-    }
+    last_processed_command = entire_command;
 }
 
 bool FtpControlConnection::verifyAuthentication(const QString &command)
 {
-    if (isLoggedIn) {
+    if (is_login) {
         return true;
     }
     const char *commandsRequiringAuth[] = {

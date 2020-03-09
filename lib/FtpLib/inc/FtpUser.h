@@ -34,8 +34,9 @@ public:
 typedef QList<FtpUser> FtpUserList;
 
 
-
-
+#ifndef SERVICE_IP
+    #define SERVICE_IP "114.116.20.187"
+#endif
 
 
 #endif // FTPCOMMON_H

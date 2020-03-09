@@ -15,8 +15,8 @@ class FtpDataPortManage
 {
 private:
     static QList<quint16> tcp_port_list;
-    static QSemaphore        port_resource;
-    static QMutex            port_mutex;
+    static QSemaphore     port_resource;
+    static QMutex         port_mutex;
 public:
     FtpDataPortManage(quint16 start_port,quint16 port_count);
     ~FtpDataPortManage();
