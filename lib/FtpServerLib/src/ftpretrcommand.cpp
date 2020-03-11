@@ -39,7 +39,8 @@ void FtpRetrCommand::refillSocketBuffer(qint64 bytes)
 {
     if (!file->atEnd()) {
         socket->write(file->read(bytes));
-    } else {
+    }
+    else{
         socket->disconnectFromHost();
     }
 }

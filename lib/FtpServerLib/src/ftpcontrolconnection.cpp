@@ -78,7 +78,7 @@ void FtpControlConnection::processCommand(const QString &entire_command)
 #ifdef Q_OS_LINUX
         reply("215 Linux");
 #endif
-    } else if ("PROT" == command) {//主动模式
+    } else if ("PROT" == command) {
         prot(command_parameters.toUpper());
     } else if ("CDUP" == command) {//返回父目录
         cdup();
@@ -100,7 +100,7 @@ void FtpControlConnection::processCommand(const QString &entire_command)
         reply("350 Requested file action pending further information.");
     } else if ("RNTO" == command) {//重命名
         rnto(toLocalPath(command_parameters));
-    } else if ("APPE" == command) {//写文件到已经存在的文件
+    } else if ("APPE" == command) {//追加内容到已经存在的文件
         stor(toLocalPath(command_parameters), true);
     } else {
         reply("502 Command not implemented.");
