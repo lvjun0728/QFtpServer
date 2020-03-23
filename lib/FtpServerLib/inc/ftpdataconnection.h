@@ -17,6 +17,7 @@ class FtpDataConnection : public QObject
     Q_OBJECT
 public:
     explicit FtpDataConnection(DynamicPortManage *port_manage,QObject *parent = nullptr);
+    ~FtpDataConnection();
 
     // Connects to a host. Any existing data connections
     // or commands are aborted.

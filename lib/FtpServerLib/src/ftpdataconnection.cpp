@@ -7,6 +7,15 @@ FtpDataConnection::FtpDataConnection(DynamicPortManage *port_manage, QObject *pa
     ftp_data_manage=port_manage;
 }
 
+FtpDataConnection::~FtpDataConnection()
+{
+    if(data_server->isListening()){
+        quint16 port=data_server->serverPort();
+        data_server->close();
+        ftp_data_manage->releasePort(port);
+    }
+}
+
 void FtpDataConnection::scheduleConnectToHost(const QString &host_name, quint16 port, bool encrypt)
 {
     this->encrypt = encrypt;

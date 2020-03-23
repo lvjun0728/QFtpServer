@@ -10,6 +10,7 @@
     #pragma execution_character_set("utf-8")
 #endif
 
+
 class FtpServer:public QTcpServer
 {
     Q_OBJECT
