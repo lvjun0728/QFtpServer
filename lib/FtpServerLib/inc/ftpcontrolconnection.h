@@ -8,7 +8,7 @@
 #include "ftpretrcommand.h"
 #include "ftpstorcommand.h"
 #include "QDir"
-#include "ftpdataportmanage.h"
+#include "dynamicportmanage.h"
 #include "ftpsslserver.h"
 #include "QSslSocket"
 
@@ -20,7 +20,7 @@ class FtpControlConnection:public QThread
 {
     Q_OBJECT
 public:
-    FtpControlConnection(FtpUserList &user_list,qintptr tcp_socket_fd,FtpDataPortManage *port_manage,QObject *parent=nullptr):QThread(parent){
+    FtpControlConnection(FtpUserList &user_list,qintptr tcp_socket_fd,DynamicPortManage *port_manage,QObject *parent=nullptr):QThread(parent){
         fpt_user_list=user_list;
         socket_fd=tcp_socket_fd;
         ftp_data_manage=port_manage;
@@ -44,7 +44,7 @@ signals:
 private:
     qintptr socket_fd;
     FtpUserList fpt_user_list;
-    FtpDataPortManage *ftp_data_manage=nullptr;
+    DynamicPortManage *ftp_data_manage=nullptr;
     QSslSocket *ftp_cmd_socket=nullptr;
     QByteArray  ftp_cmd_buf;
 
@@ -102,11 +102,11 @@ private:
                 if (!components.isEmpty()) {
                     components.pop_back();
                 }
-            } else if (component != ".") {
+            }
+            else if (component != ".") {
                 components += component;
             }
         }
-
         // Prepend the root path.
         localPath = QDir::cleanPath(ftp_user.rootPath + '/' + components.join("/"));
         return localPath;

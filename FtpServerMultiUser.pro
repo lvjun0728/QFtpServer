@@ -27,3 +27,5 @@ else: unix:!android: target.path = /home/lvjun/qt_test/$${TARGET}
 
 
 
+
+

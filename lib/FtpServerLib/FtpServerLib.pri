@@ -8,10 +8,10 @@ INCLUDEPATH += \
 
 HEADERS += \
     $$PWD/inc/FtpUser.h \
+    $$PWD/inc/dynamicportmanage.h \
     $$PWD/inc/ftpcommand.h \
     $$PWD/inc/ftpcontrolconnection.h \
     $$PWD/inc/ftpdataconnection.h \
-    $$PWD/inc/ftpdataportmanage.h \
     $$PWD/inc/ftplistcommand.h \
     $$PWD/inc/ftpretrcommand.h \
     $$PWD/inc/ftpserver.h \
@@ -21,7 +21,6 @@ HEADERS += \
 SOURCES += \
     $$PWD/src/ftpcontrolconnection.cpp \
     $$PWD/src/ftpdataconnection.cpp \
-    $$PWD/src/ftpdataportmanage.cpp \
     $$PWD/src/ftplistcommand.cpp \
     $$PWD/src/ftpretrcommand.cpp \
     $$PWD/src/ftpsslserver.cpp \

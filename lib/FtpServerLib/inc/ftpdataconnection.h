@@ -5,7 +5,7 @@
 #include <QPointer>
 #include <QTcpServer>
 #include <ftpcommand.h>
-#include <ftpdataportmanage.h>
+#include "dynamicportmanage.h"
 #include <ftpsslserver.h>
 
 #ifdef _MSC_VER
@@ -16,7 +16,7 @@ class FtpDataConnection : public QObject
 {
     Q_OBJECT
 public:
-    explicit FtpDataConnection(FtpDataPortManage *port_manage,QObject *parent = nullptr);
+    explicit FtpDataConnection(DynamicPortManage *port_manage,QObject *parent = nullptr);
 
     // Connects to a host. Any existing data connections
     // or commands are aborted.
@@ -53,7 +53,7 @@ private:
     bool isSocketReady=false;
     bool isWaitingForFtpCommand=false;
     bool encrypt;
-    FtpDataPortManage *ftp_data_manage=nullptr;
+    DynamicPortManage *ftp_data_manage=nullptr;
 
     // Used for the active data connection (PORT command).
     bool isActiveConnection;//是否为主动模式连接

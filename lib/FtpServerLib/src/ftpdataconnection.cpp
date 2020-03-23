@@ -1,6 +1,6 @@
 ﻿#include "ftpdataconnection.h"
 
-FtpDataConnection::FtpDataConnection(FtpDataPortManage *port_manage, QObject *parent):QObject(parent)
+FtpDataConnection::FtpDataConnection(DynamicPortManage *port_manage, QObject *parent):QObject(parent)
 {
     data_server = new FtpSslServer(this);
     connect(data_server, SIGNAL(newConnection()), this, SLOT(newConnection()));
