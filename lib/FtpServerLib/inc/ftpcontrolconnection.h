@@ -20,7 +20,8 @@ class FtpControlConnection:public QThread
 {
     Q_OBJECT
 public:
-    FtpControlConnection(FtpUserList &user_list,qintptr tcp_socket_fd,DynamicPortManage *port_manage,QObject *parent=nullptr):QThread(parent){
+    FtpControlConnection(QHostAddress server_ip,FtpUserList &user_list,qintptr tcp_socket_fd,DynamicPortManage *port_manage,QObject *parent=nullptr):QThread(parent){
+        this->server_ip=server_ip;
         fpt_user_list=user_list;
         socket_fd=tcp_socket_fd;
         ftp_data_manage=port_manage;
@@ -54,6 +55,7 @@ private:
     FtpDataConnection *dataConnection=nullptr;
     QString currentDirectory;
     QString last_processed_command;//上一条处理的命令
+    QHostAddress server_ip;
 
     //处理命令
     void processCommand(const QString &entire_command);
@@ -132,11 +134,7 @@ private:
     // Open a new passive data connection.
     inline void pasv(){
         int port = dataConnection->listen(encryptDataConnection);
-#if (FTP_RUN_MODE==FTP_MODE_LOCAL)
-        reply(QString("227 Entering Passive Mode (%1,%2,%3).").arg(ftp_cmd_socket->localAddress().toString().replace('.',',')).arg(port/256).arg(port%256));
-#elif (FTP_RUN_MODE==FTP_MODE_SERVER)
-        reply(QString("227 Entering Passive Mode (%1,%2,%3).").arg(QString(SERVICE_IP).replace('.',',')).arg(port/256).arg(port%256));
-#endif
+        reply(QString("227 Entering Passive Mode (%1,%2,%3).").arg(server_ip.toString().replace('.',',')).arg(port/256).arg(port%256));
     }
     // List directory contents. Equivalent to 'ls' in UNIX, or 'dir' in DOS.
     inline void list(const QString &dir, bool nameListOnly){

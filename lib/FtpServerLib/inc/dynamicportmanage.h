@@ -15,9 +15,9 @@
 class DynamicPortManage
 {
 private:
-    QList<quint16> tcp_port_list;
-    QSemaphore     port_resource;
-    QMutex         port_mutex;
+    static QList<quint16> tcp_port_list;
+    static QSemaphore     port_resource;
+    static QMutex         port_mutex;
 public:
     DynamicPortManage(quint16 start_port,quint16 port_count){
         QMutexLocker locker(&port_mutex);
@@ -30,34 +30,13 @@ public:
         tcp_port_list.clear();
     }
     inline bool isInitOk(void){
-        return (tcp_port_list.size()) ? true : false;
+        return tcp_port_list.size() ? true : false;
     }
-    inline int availableResources(){
+    int32_t availableResources(){
         return tcp_port_list.size();
     }
-    quint16 acquirePort(void){
-        port_resource.acquire();
-        QMutexLocker locker(&port_mutex);
-        for(int i=0;i<tcp_port_list.size();i++){
-            quint16 port=tcp_port_list.at(i);
-            QTcpServer tcp_server;
-            if(tcp_server.listen(QHostAddress::Any,port)){
-                tcp_server.close();
-                tcp_port_list.removeAt(i);
-                return port;
-            }
-        }
-        return 0;
-    }
-    bool releasePort(quint16 port){
-        QMutexLocker locker(&port_mutex);
-        if(tcp_port_list.indexOf(port)<0){
-            tcp_port_list.append(port);
-            port_resource.release();
-            return true;
-        }
-        return false;
-    }
+    quint16 acquirePort(void);
+    bool releasePort(quint16 port);
 };
 
 

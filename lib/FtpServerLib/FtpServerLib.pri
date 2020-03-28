@@ -1,8 +1,4 @@
 
-DEFINES +=FTP_MODE_LOCAL=0
-DEFINES +=FTP_MODE_SERVER=1
-DEFINES +=FTP_RUN_MODE=FTP_MODE_LOCAL
-
 INCLUDEPATH += \
     $$PWD/inc
 
@@ -19,6 +15,7 @@ HEADERS += \
     $$PWD/inc/ftpstorcommand.h
 
 SOURCES += \
+    $$PWD/src/dynamicportmanage.cpp \
     $$PWD/src/ftpcontrolconnection.cpp \
     $$PWD/src/ftpdataconnection.cpp \
     $$PWD/src/ftplistcommand.cpp \

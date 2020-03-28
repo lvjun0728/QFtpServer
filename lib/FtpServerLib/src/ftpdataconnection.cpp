@@ -97,7 +97,8 @@ void FtpDataConnection::connected()
         connect(data_socket, SIGNAL(encrypted()), this, SLOT(encrypted()));
         FtpSslServer::setLocalCertificateAndPrivateKey(data_socket);
         data_socket->startServerEncryption();
-    } else {
+    }
+    else {
         encrypted();
     }
 }

@@ -16,9 +16,14 @@ class FtpServer:public QTcpServer
     Q_OBJECT
 private:
     DynamicPortManage *ftp_data_manage=nullptr;
+    QHostAddress server_ip;
 public:
     bool initOk=false;
-    explicit FtpServer(FtpUserList &user_list,quint16 control_port,quint16 data_port_start,quint16 data_port_count,QObject *parent=nullptr):QTcpServer(parent),fpt_user_list(user_list){
+    explicit FtpServer(QHostAddress server_ip,FtpUserList &user_list,quint16 control_port,quint16 data_port_start,quint16 data_port_count,QObject *parent=nullptr):QTcpServer(parent),fpt_user_list(user_list){
+        this->server_ip=server_ip;
+        if(this->server_ip.isNull()){
+            return;
+        }
         if(!listen(QHostAddress::AnyIPv4,control_port)){//绑定IP V4端口
             return;
         }
@@ -35,7 +40,7 @@ public:
             return;
         }
         this->ftp_data_manage=ftp_data_manage;
-        if((ftp_data_manage=nullptr) || (!ftp_data_manage->isInitOk())){
+        if((this->ftp_data_manage=nullptr) || (!this->ftp_data_manage->isInitOk())){
             return;
         }
         initOk=true;
@@ -57,7 +62,7 @@ private slots:
     }
 protected:
     void incomingConnection(qintptr socketDescriptor){
-        FtpControlConnection *control_connection=new FtpControlConnection(fpt_user_list,socketDescriptor,ftp_data_manage);
+        FtpControlConnection *control_connection=new FtpControlConnection(server_ip,fpt_user_list,socketDescriptor,ftp_data_manage);
         control_connection->start();
         control_connection->moveToThread(control_connection);
         connect(control_connection,SIGNAL(threadExitSignal(FtpControlConnection *)),this,SLOT(threadExitSlot(FtpControlConnection *)));
