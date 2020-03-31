@@ -26,7 +26,6 @@ SOURCES += \
     $$PWD/src/ftpdataconnection.cpp \
     $$PWD/src/ftplistcommand.cpp \
     $$PWD/src/ftpretrcommand.cpp \
-    $$PWD/src/ftpsslserver.cpp \
     $$PWD/src/ftpstorcommand.cpp
 
 

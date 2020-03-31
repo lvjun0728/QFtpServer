@@ -19,8 +19,9 @@ private slots:
 private:
     void startImplementation();
     QString fileName;
-    QFile *file;
-    qint64 seekTo;
+    QFile  *file=nullptr;
+    qint64  seekTo=0;
+    qint64  socket_buf_len=0;//Socket底层缓冲区的大小
 };
 
 

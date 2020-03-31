@@ -30,15 +30,28 @@ void FtpRetrCommand::startImplementation()
     if (seekTo) {
         file->seek(seekTo);
     }
-
-    connect(socket, SIGNAL(bytesWritten(qint64)), this, SLOT(refillSocketBuffer(qint64)));
-    refillSocketBuffer(128*1024);
+    socket_buf_len=0;
+    if(socket->isEncrypted()){
+        connect(socket, SIGNAL(encryptedBytesWritten(qint64)),this,SLOT(refillSocketBuffer(qint64)));
+    }
+    else{
+        connect(socket, SIGNAL(bytesWritten(qint64)), this, SLOT(refillSocketBuffer(qint64)));
+    }
+    refillSocketBuffer(64*1024);
 }
 
 void FtpRetrCommand::refillSocketBuffer(qint64 bytes)
 {
+    if(socket_buf_len){
+        socket_buf_len=(socket_buf_len-bytes)>=0 ? (socket_buf_len-bytes) :0;
+        if(socket_buf_len>=512){
+            return;
+        }
+    }
     if (!file->atEnd()) {
-        socket->write(file->read(bytes));
+        QByteArray read_buf=file->read(64*1024);
+        socket_buf_len+=read_buf.size();
+        socket->write(read_buf);
     }
     else{
         socket->disconnectFromHost();

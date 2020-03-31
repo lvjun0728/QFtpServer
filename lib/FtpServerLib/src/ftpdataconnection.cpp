@@ -17,6 +17,8 @@ FtpDataConnection::~FtpDataConnection()
 {
     if(data_server){
         data_server->close();
+        delete data_server;
+        data_server=nullptr;
     }
     if(dynamic_port_manage && server_port){
         dynamic_port_manage->releasePort(server_port);

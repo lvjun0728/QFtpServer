@@ -2,7 +2,7 @@
 #define FTPCOMMAND_H
 
 
-#include <QTcpSocket>
+#include <QSslSocket>
 
 #ifdef _MSC_VER
     #pragma execution_character_set("utf-8")
@@ -20,7 +20,7 @@ public:
 signals:
     void reply(const QString &details);
 public:
-    void start(QTcpSocket *socket){
+    void start(QSslSocket *socket){
         started = true;
         this->socket = socket;
         socket->setParent(this);
@@ -29,7 +29,7 @@ public:
     }
 protected:
     virtual void startImplementation() = 0;
-    QTcpSocket* socket;
+    QSslSocket* socket=nullptr;
     bool started=false;
 };
 
