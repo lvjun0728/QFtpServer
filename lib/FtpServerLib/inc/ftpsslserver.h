@@ -7,7 +7,9 @@
 class FtpSslServer : public QTcpServer
 {
 public:
-    explicit FtpSslServer(QObject *parent);
+    explicit FtpSslServer(QObject *parent):QTcpServer(parent){
+
+    }
     static void setLocalCertificateAndPrivateKey(QSslSocket *socket);
 
 private:

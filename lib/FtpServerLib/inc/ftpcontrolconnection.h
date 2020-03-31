@@ -2,7 +2,7 @@
 #define FTPCONTROLCONNECTION_H
 
 #include "FtpUser.h"
-#include "QThread"
+#include "iotthread.h"
 #include "ftpdataconnection.h"
 #include "ftplistcommand.h"
 #include "ftpretrcommand.h"
@@ -16,36 +16,13 @@
     #pragma execution_character_set("utf-8")
 #endif
 
-class FtpControlConnection:public QThread
+class FtpControlConnection:public IotThread
 {
     Q_OBJECT
-public:
-    FtpControlConnection(QHostAddress server_ip,FtpUserList &user_list,qintptr tcp_socket_fd,DynamicPortManage *port_manage,QObject *parent=nullptr):QThread(parent){
-        this->server_ip=server_ip;
-        fpt_user_list=user_list;
-        socket_fd=tcp_socket_fd;
-        ftp_data_manage=port_manage;
-    }
-protected:
-    void run() override;
-private slots:
-    void acceptNewDataSlot(void);
-    void socketDisconnectSlot(void){
-        emit threadExitSignal(this);
-        exit();
-    }
-    inline void disconnectFromHost(){
-        ftp_cmd_socket->disconnectFromHost();
-    }
-    inline void reply(const QString &replyCode){
-        ftp_cmd_socket->write((replyCode + "\r\n").toUtf8());
-    }
-signals:
-    void threadExitSignal(FtpControlConnection *thread);
 private:
-    qintptr socket_fd;
+    qintptr     ftp_socket_fd=0;
     FtpUserList fpt_user_list;
-    DynamicPortManage *ftp_data_manage=nullptr;
+    DynamicPortManage *dynamic_port_manage=nullptr;//如果动态端口指针为空，说明为云服务器模式
     QSslSocket *ftp_cmd_socket=nullptr;
     QByteArray  ftp_cmd_buf;
 
@@ -56,6 +33,52 @@ private:
     QString currentDirectory;
     QString last_processed_command;//上一条处理的命令
     QHostAddress server_ip;
+
+    //云服务设备FTP模式
+    quint16 ftp_control_port=0;
+    quint16 ftp_data_port=0;
+
+public:
+    //正常服务器模式
+    FtpControlConnection(QHostAddress server_ip,FtpUserList &fpt_user_list,qintptr ftp_socket_fd,DynamicPortManage *dynamic_port_manage, \
+                         IotThreadManage *thread_manage,QObject *parent=nullptr):IotThread(thread_manage,parent){
+        this->server_ip=server_ip;
+        this->fpt_user_list=fpt_user_list;
+        this->ftp_socket_fd=ftp_socket_fd;
+        this->dynamic_port_manage=dynamic_port_manage;
+    }
+    //云服务设备FTP模式
+    FtpControlConnection(QHostAddress server_ip,FtpUserList &fpt_user_list,quint16 ftp_control_port,quint16 ftp_data_port, \
+                         IotThreadManage *thread_manage,QObject *parent=nullptr):IotThread(thread_manage,parent){
+        this->server_ip=server_ip;
+        this->fpt_user_list=fpt_user_list;
+        this->ftp_control_port=ftp_control_port;
+        this->ftp_data_port=ftp_data_port;
+    }
+protected:
+    void run() override;
+private slots:
+    inline void ftpConnectedSlot(void){
+        connect(ftp_cmd_socket,SIGNAL(readyRead()),this,SLOT(acceptNewDataSlot()));
+        connect(ftp_cmd_socket,SIGNAL(disconnected()),this,SLOT(quit()));
+
+        currentDirectory = "/";
+        //初始化数据连接
+        dataConnection =new FtpDataConnection(server_ip,ftp_data_port,this);
+        reply("220 Welcome Login IotFtpServer");
+    }
+
+    void acceptNewDataSlot(void);
+    inline void disconnectFromHost(){
+        ftp_cmd_socket->disconnectFromHost();
+    }
+    inline void reply(const QString &replyCode){
+        ftp_cmd_socket->write((replyCode + "\r\n").toUtf8());
+    }
+    void iotThreadExitSlot() override{
+        ftp_cmd_socket->close();
+    }
+private:
 
     //处理命令
     void processCommand(const QString &entire_command);
@@ -199,7 +222,7 @@ private:
         }
     }
     // Quits the FTP session. The control connection closes.
-    void quit(){
+    void quitFtp(){
         reply("221 Quitting...");
         // If we have a running download or upload, we will wait until it's
         // finished before closing the control connection.

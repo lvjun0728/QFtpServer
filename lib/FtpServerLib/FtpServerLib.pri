@@ -2,6 +2,10 @@
 INCLUDEPATH += \
     $$PWD/inc
 
+
+RESOURCES += \
+    $$PWD/certificates.qrc
+
 HEADERS += \
     $$PWD/inc/FtpUser.h \
     $$PWD/inc/dynamicportmanage.h \
@@ -12,7 +16,9 @@ HEADERS += \
     $$PWD/inc/ftpretrcommand.h \
     $$PWD/inc/ftpserver.h \
     $$PWD/inc/ftpsslserver.h \
-    $$PWD/inc/ftpstorcommand.h
+    $$PWD/inc/ftpstorcommand.h \
+    $$PWD/inc/iotthread.h \
+    $$PWD/inc/iotthreadmanage.h
 
 SOURCES += \
     $$PWD/src/dynamicportmanage.cpp \
@@ -22,8 +28,5 @@ SOURCES += \
     $$PWD/src/ftpretrcommand.cpp \
     $$PWD/src/ftpsslserver.cpp \
     $$PWD/src/ftpstorcommand.cpp
-
-RESOURCES += \
-    $$PWD/certificates.qrc
 
 

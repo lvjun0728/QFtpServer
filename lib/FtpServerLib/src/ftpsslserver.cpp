@@ -3,11 +3,6 @@
 #include <QSslKey>
 
 
-FtpSslServer::FtpSslServer(QObject *parent):QTcpServer(parent)
-{
-
-}
-
 void FtpSslServer::setLocalCertificateAndPrivateKey(QSslSocket *socket)
 {
     //socket->setPrivateKey(":/privkey.pem",QSsl::Rsa, QSsl::Pem, "39129380423984234012312");//私钥需要密码验证

@@ -3,14 +3,22 @@
 
 void FtpControlConnection::run()
 {
+    initIotThread("FtpControlConnection");
     ftp_cmd_socket=new QSslSocket(this);
-    ftp_cmd_socket->setSocketDescriptor(socket_fd);
+    if(dynamic_port_manage){
+        ftp_cmd_socket->setSocketDescriptor(ftp_socket_fd);
+    }
+    else{
+        ftp_cmd_socket->connectToHost(server_ip,ftp_control_port);
+        connect(ftp_cmd_socket,SIGNAL(connected()),this,SLOT(ftpConnectedSlot()));
+        return;
+    }
 
     connect(ftp_cmd_socket,SIGNAL(readyRead()),this,SLOT(acceptNewDataSlot()));
-    connect(ftp_cmd_socket,SIGNAL(disconnected()),this,SLOT(socketDisconnectSlot()));
+    connect(ftp_cmd_socket,SIGNAL(disconnected()),this,SLOT(quit()));
 
     currentDirectory = "/";
-    dataConnection =new FtpDataConnection(ftp_data_manage,this);//数据
+    dataConnection =new FtpDataConnection(dynamic_port_manage,this);//数据
     reply("220 Welcome Login IotFtpServer");
     exec();
 }
@@ -46,7 +54,7 @@ void FtpControlConnection::processCommand(const QString &entire_command)
     } else if ("PASS" == command) {//密码验证通过
         pass(command_parameters);
     } else if ("QUIT" == command) {//退出
-        quit();
+        quitFtp();
     } else if ("AUTH" == command && "TLS" == command_parameters.toUpper()) {//SSL加密使能
         auth();
     } else if ("FEAT" == command) {//特性读取

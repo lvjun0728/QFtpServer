@@ -16,12 +16,15 @@ class FtpDataConnection : public QObject
 {
     Q_OBJECT
 public:
-    explicit FtpDataConnection(DynamicPortManage *port_manage,QObject *parent = nullptr);
+    //普通服务器FTP模式
+    explicit FtpDataConnection(DynamicPortManage *dynamic_port_manage,QObject *parent = nullptr);
+    explicit FtpDataConnection(QHostAddress server_ip,uint16_t server_port,QObject *parent = nullptr);
+
     ~FtpDataConnection();
 
     // Connects to a host. Any existing data connections
     // or commands are aborted.
-    void scheduleConnectToHost(const QString &host_name, quint16 port, bool encrypt);
+    void scheduleConnectToHost(const QString &host_name, quint16 user_port, bool encrypt);
 
     // Starts listening for new data connections. Any existing data connections
     // or commands are aborted.
@@ -39,12 +42,12 @@ public:
 signals:
 
 private slots:
-    void newConnection();
-    inline void encrypted(){
+    void newConnectionSlot();
+    inline void encryptedSlot(){
         isSocketReady = true;
         startFtpCommand();
     }
-    void connected();
+    void connectedSlot();
 
 private:
     void startFtpCommand();
@@ -54,11 +57,20 @@ private:
     bool isSocketReady=false;
     bool isWaitingForFtpCommand=false;
     bool encrypt;
-    DynamicPortManage *ftp_data_manage=nullptr;
+    DynamicPortManage *dynamic_port_manage=nullptr;//如果动态端口指针为空，说明为云服务器模式
 
     // Used for the active data connection (PORT command).
     bool isActiveConnection;//是否为主动模式连接
     QString host_name;
-    quint16 port;
+    quint16 user_port;
+
+    QHostAddress server_ip;
+    quint16      server_port=0;
 };
 #endif // FTPDATACONNECTION_H
+
+
+
+
+
+

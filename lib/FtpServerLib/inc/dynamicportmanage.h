@@ -32,7 +32,8 @@ public:
     inline bool isInitOk(void){
         return tcp_port_list.size() ? true : false;
     }
-    int32_t availableResources(){
+    static int32_t availableResources(){
+        QMutexLocker locker(&port_mutex);
         return tcp_port_list.size();
     }
     quint16 acquirePort(void);

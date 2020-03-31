@@ -1,18 +1,26 @@
 ﻿#include "ftpdataconnection.h"
 
-FtpDataConnection::FtpDataConnection(DynamicPortManage *port_manage, QObject *parent):QObject(parent)
+FtpDataConnection::FtpDataConnection(DynamicPortManage *dynamic_port_manage,QObject *parent):QObject(parent)
 {
+    this->dynamic_port_manage=dynamic_port_manage;
     data_server = new FtpSslServer(this);
-    connect(data_server, SIGNAL(newConnection()), this, SLOT(newConnection()));
-    ftp_data_manage=port_manage;
+    connect(data_server, SIGNAL(newConnection()), this, SLOT(newConnectionSlot()));
+}
+
+FtpDataConnection::FtpDataConnection(QHostAddress server_ip,uint16_t server_port,QObject *parent):QObject(parent)
+{
+    this->server_ip=server_ip;
+    this->server_port=server_port;
 }
 
 FtpDataConnection::~FtpDataConnection()
 {
-    if(data_server->isListening()){
-        quint16 port=data_server->serverPort();
+    if(data_server){
         data_server->close();
-        ftp_data_manage->releasePort(port);
+    }
+    if(dynamic_port_manage && server_port){
+        dynamic_port_manage->releasePort(server_port);
+        server_port=0;
     }
 }
 
@@ -24,7 +32,7 @@ void FtpDataConnection::scheduleConnectToHost(const QString &host_name, quint16 
         data_socket=nullptr;
     }
     this->host_name = host_name;
-    this->port = port;
+    this->user_port = port;
     isSocketReady = false;
     isWaitingForFtpCommand = true;
     isActiveConnection = true;
@@ -42,14 +50,30 @@ int FtpDataConnection::listen(bool encrypt)
     isSocketReady = false;
     isWaitingForFtpCommand = true;
     isActiveConnection = false;
-    if(data_server->isListening()){
-        quint16 port=data_server->serverPort();
-        data_server->close();
-        ftp_data_manage->releasePort(port);
+
+    //普通FTP服务器模式
+    if(dynamic_port_manage){
+        if(data_server->isListening()){
+            data_server->close();
+        }
+        if(server_port){
+            dynamic_port_manage->releasePort(server_port);
+            server_port=0;
+        }
+        //获取动态服务器端口
+        server_port=dynamic_port_manage->acquirePort();
+        if(server_port==0){
+            qWarning()<<"动态端口申请失败";
+            return 0;
+        }
+        data_server->listen(QHostAddress::AnyIPv4,server_port);//获取被动模式端口
+        return data_server->serverPort();
     }
-    //绑定制定范围端口
-    data_server->listen(QHostAddress::AnyIPv4,ftp_data_manage->acquirePort());//获取被动模式端口
-    return data_server->serverPort();
+    //云服务设备FTP模式
+    data_socket=new QSslSocket;
+    data_socket->connectToHost(server_ip,server_port);
+    connect(data_socket,SIGNAL(connected()),this,SLOT(connectedSlot()));
+    return server_port;
 }
 
 bool FtpDataConnection::setFtpCommand(FtpCommand *command)
@@ -63,8 +87,8 @@ bool FtpDataConnection::setFtpCommand(FtpCommand *command)
 
     if(isActiveConnection){
         data_socket = new QSslSocket(this);
-        connect(data_socket, SIGNAL(connected()), this, SLOT(connected()));
-        data_socket->connectToHost(host_name, port);
+        connect(data_socket,SIGNAL(connected()),this,SLOT(connectedSlot()));
+        data_socket->connectToHost(host_name, user_port);
     }
     else{
         startFtpCommand();
@@ -73,33 +97,35 @@ bool FtpDataConnection::setFtpCommand(FtpCommand *command)
 }
 
 
-void FtpDataConnection::newConnection()
+void FtpDataConnection::newConnectionSlot()
 {
     data_socket = reinterpret_cast<QSslSocket *>(data_server->nextPendingConnection());
     if(data_server->isListening()){
-        quint16 port=data_server->serverPort();
         data_server->close();
-        ftp_data_manage->releasePort(port);
+        if(dynamic_port_manage && server_port){
+            dynamic_port_manage->releasePort(server_port);
+            server_port=0;
+        }
     }
     if(encrypt){
-        connect(data_socket, SIGNAL(encrypted()), this, SLOT(encrypted()));
-        FtpSslServer::setLocalCertificateAndPrivateKey(data_socket);
-        data_socket->startServerEncryption();
-    }
-    else{
-        encrypted();
-    }
-}
-
-void FtpDataConnection::connected()
-{
-    if (encrypt) {
-        connect(data_socket, SIGNAL(encrypted()), this, SLOT(encrypted()));
+        connect(data_socket, SIGNAL(encrypted()), this, SLOT(encryptedSlot()));
         FtpSslServer::setLocalCertificateAndPrivateKey(data_socket);
         data_socket->startServerEncryption();
     }
     else {
-        encrypted();
+        encryptedSlot();
+    }
+}
+
+void FtpDataConnection::connectedSlot()
+{
+    if (encrypt) {
+        connect(data_socket, SIGNAL(encrypted()), this, SLOT(encryptedSlot()));
+        FtpSslServer::setLocalCertificateAndPrivateKey(data_socket);
+        data_socket->startServerEncryption();
+    }
+    else {
+        encryptedSlot();
     }
 }
 
