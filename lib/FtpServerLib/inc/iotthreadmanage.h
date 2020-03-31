@@ -66,7 +66,7 @@ private slots:
         }
         GlobalThread one_thread(thread,thread_type);
         global_thread_list.append(one_thread);
-        qDebug()<<"新的线程已经建立，当前运行线程数"<<global_thread_list.size()<<"动态端口数:"<<DynamicPortManage::availableResources();
+        //qDebug()<<"新的线程已经建立，当前运行线程数"<<global_thread_list.size()<<"动态端口数:"<<DynamicPortManage::availableResources();
     }
     void threadExitSlot(QThread *thread){
         GlobalThread one_thread(thread,nullptr);
@@ -79,8 +79,8 @@ private slots:
         delete thread;
         global_thread_list.removeAt(index);
 
-        qDebug()<<"线程已经成功退出,当前运行线程"<<global_thread_list.size()<<"动态端口数:"<<DynamicPortManage::availableResources();
-        if(close_mark && (global_thread_list.size()==0)){\
+        //qDebug()<<"线程已经成功退出,当前运行线程"<<global_thread_list.size()<<"动态端口数:"<<DynamicPortManage::availableResources();
+        if(close_mark && (global_thread_list.size()==0)){
             exit(0);
         }
     }
