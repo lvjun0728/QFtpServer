@@ -14,31 +14,23 @@ void FtpListCommand::startImplementation()
 {
     QFileInfo info(listDirectory);
     if (!info.isReadable()) {
-        emit reply("425 File or directory is not readable or doesn't exist.");
-        socket->disconnectFromHost();
+        emit replySignal("425 File or directory is not readable or doesn't exist.");
+        ftp_data_socket->disconnectFromHost();
         return;
     }
-    emit reply("150 File status okay; about to open data connection.");
+    emit replySignal("150 File status okay; about to open data connection.");
     index = 0;
-    list = new QFileInfoList;
+    file_info_list = new QFileInfoList;
     if (!info.isDir()) {
-        *list = (QFileInfoList() << info);
+        *file_info_list = (QFileInfoList() << info);
     } else {
-        *list = QDir(listDirectory).entryInfoList();
+        *file_info_list = QDir(listDirectory).entryInfoList();
     }
 
     // Start the timer.
     timer = new QTimer(this);
-    connect(timer, SIGNAL(timeout()), this, SLOT(listNextBatch()));
+    connect(timer, SIGNAL(timeout()), this, SLOT(listNextBatchSlot()));
     timer->start(0);
-}
-
-QString padded(QString s, int n)
-{
-    while (s.size() < n) {
-        s = ' ' + s;
-    }
-    return s;
 }
 
 QString FtpListCommand::fileListingString(const QFileInfo &fi)
@@ -97,20 +89,32 @@ QString FtpListCommand::fileListingString(const QFileInfo &fi)
     return line;
 }
 
-void FtpListCommand::listNextBatch()
+void FtpListCommand::listNextBatchSlot()
 {
     // List next 10 items.
-    int stop = qMin(index + 10, list->size());
+    int32_t stop = qMin(index + 10, file_info_list->size());
     while (index < stop) {
-        QString line = fileListingString(list->at(index));
-        socket->write(line.toUtf8());
+        QString line = fileListingString(file_info_list->at(index));
+        ftp_data_socket->write(line.toUtf8());
         index++;
     }
 
     // If all files have been listed, then finish.
-    if (list->size() == stop) {
-        delete list;
+    if (file_info_list->size() == stop) {
+        delete file_info_list;
+        file_info_list=nullptr;
         timer->stop();
-        socket->disconnectFromHost();
+        //在断开连接时保证所有数据写入Socket
+        ftp_data_socket->flush();
+        ftp_data_socket->disconnectFromHost();
     }
 }
+
+
+
+
+
+
+
+
+

@@ -16,14 +16,14 @@ public:
     ~FtpStorCommand();
 
 private slots:
-    void acceptNextBlock();
+    void acceptNextBlockSlot();
 private:
     void startImplementation();
     QString fileName;
-    QFile *file;
-    bool appendMode;
-    qint64 seekTo;
-    bool success;
+    QFile  *file=nullptr;
+    bool    appendMode;
+    qint64  seekTo;
+    bool    success;
 };
 
 #endif // FTPSTORCOMMAND_H

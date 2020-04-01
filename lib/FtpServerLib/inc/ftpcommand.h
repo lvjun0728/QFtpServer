@@ -18,19 +18,19 @@ public:
 
     }
 signals:
-    void reply(const QString &details);
+    void replySignal(const QString &details);
 public:
-    void start(QSslSocket *socket){
-        started = true;
-        this->socket = socket;
-        socket->setParent(this);
-        connect(socket, SIGNAL(disconnected()), this, SLOT(deleteLater()));
+    void start(QSslSocket *ftp_data_socket){
+        is_started = true;
+        this->ftp_data_socket = ftp_data_socket;
+        ftp_data_socket->setParent(this);
+        connect(ftp_data_socket, SIGNAL(disconnected()),this,SLOT(deleteLater()));
         startImplementation();
     }
 protected:
     virtual void startImplementation() = 0;
-    QSslSocket* socket=nullptr;
-    bool started=false;
+    QSslSocket* ftp_data_socket=nullptr;
+    bool        is_started=false;
 };
 
 #endif // FTPCOMMAND_H

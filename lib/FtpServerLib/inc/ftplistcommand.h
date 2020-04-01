@@ -17,20 +17,27 @@ class FtpListCommand : public FtpCommand
 public:
     explicit FtpListCommand(QObject *parent, const QString &listDirectory, bool nameListOnly = false);
     ~FtpListCommand(){
-        if (started) {
-            emit reply("226 Closing data connection.");
+        if (is_started) {
+            emit replySignal("226 Closing data connection.");
         }
     }
 private:
     void startImplementation();
     QString fileListingString(const QFileInfo &fi);
+
+    inline QString padded(QString s,int32_t n){
+        while(s.size() < n){
+            s = ' ' + s;
+        }
+        return s;
+    }
 private slots:
-    void listNextBatch();
+    void listNextBatchSlot();
 private:
-    QString listDirectory;
-    bool nameListOnly;
-    QTimer *timer;
-    QFileInfoList *list;
-    int index;
+    QString        listDirectory;
+    bool           nameListOnly;
+    QTimer        *timer=nullptr;
+    QFileInfoList *file_info_list=nullptr;
+    int32_t        index=0;
 };
 #endif // FTPLISTCOMMAND_H

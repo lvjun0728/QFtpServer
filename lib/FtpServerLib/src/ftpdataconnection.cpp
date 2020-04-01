@@ -10,7 +10,7 @@ FtpDataConnection::FtpDataConnection(DynamicPortManage *dynamic_port_manage,QObj
 FtpDataConnection::FtpDataConnection(QHostAddress server_ip,uint16_t server_port,QObject *parent):QObject(parent)
 {
     this->server_ip=server_ip;
-    this->server_port=server_port;
+    this->ftp_data_port=server_port;
 }
 
 FtpDataConnection::~FtpDataConnection()
@@ -20,9 +20,9 @@ FtpDataConnection::~FtpDataConnection()
         delete data_server;
         data_server=nullptr;
     }
-    if(dynamic_port_manage && server_port){
-        dynamic_port_manage->releasePort(server_port);
-        server_port=0;
+    if(dynamic_port_manage && ftp_data_port){
+        dynamic_port_manage->releasePort(ftp_data_port);
+        ftp_data_port=0;
     }
 }
 
@@ -40,7 +40,7 @@ void FtpDataConnection::scheduleConnectToHost(const QString &host_name, quint16 
     isActiveConnection = true;
 }
 
-int FtpDataConnection::listen(bool encrypt)
+int32_t FtpDataConnection::listen(bool encrypt)
 {
     this->encrypt = encrypt;
     if(data_socket){
@@ -58,24 +58,21 @@ int FtpDataConnection::listen(bool encrypt)
         if(data_server->isListening()){
             data_server->close();
         }
-        if(server_port){
-            dynamic_port_manage->releasePort(server_port);
-            server_port=0;
+        if(ftp_data_port){
+            dynamic_port_manage->releasePort(ftp_data_port);
+            ftp_data_port=0;
         }
         //获取动态服务器端口
-        server_port=dynamic_port_manage->acquirePort();
-        if(server_port==0){
+        ftp_data_port=dynamic_port_manage->acquirePort();
+        if(ftp_data_port==0){
             qWarning()<<"动态端口申请失败";
             return 0;
         }
-        data_server->listen(QHostAddress::AnyIPv4,server_port);//获取被动模式端口
+        data_server->listen(QHostAddress::AnyIPv4,ftp_data_port);//获取被动模式端口
         return data_server->serverPort();
     }
-    //云服务设备FTP模式
-    data_socket=new QSslSocket;
-    data_socket->connectToHost(server_ip,server_port);
-    connect(data_socket,SIGNAL(connected()),this,SLOT(connectedSlot()));
-    return server_port;
+    emit connectIotServerSignal();
+    return ftp_data_port;
 }
 
 bool FtpDataConnection::setFtpCommand(FtpCommand *command)
@@ -98,19 +95,41 @@ bool FtpDataConnection::setFtpCommand(FtpCommand *command)
     return true;
 }
 
+void FtpDataConnection::ftpIotDeviceDataConnectSlot(quint16 server_data_port)
+{
+    if(data_socket){
+        data_socket->deleteLater();
+        data_socket=nullptr;
+    }
+    //云服务设备FTP模式
+    data_socket=new QSslSocket(this);
+    data_socket->connectToHost(server_ip,server_data_port);
+    if(!data_socket->waitForConnected()){
+        isSocketReady = false;
+        return;
+    }
+    if(encrypt){
+        connect(data_socket,SIGNAL(encrypted()),this,SLOT(encryptedSlot()));
+        FtpSslServer::setLocalCertificateAndPrivateKey(data_socket);
+        data_socket->startServerEncryption();
+    }
+    else {
+        encryptedSlot();
+    }
+}
 
 void FtpDataConnection::newConnectionSlot()
 {
     data_socket = reinterpret_cast<QSslSocket *>(data_server->nextPendingConnection());
     if(data_server->isListening()){
         data_server->close();
-        if(dynamic_port_manage && server_port){
-            dynamic_port_manage->releasePort(server_port);
-            server_port=0;
+        if(dynamic_port_manage && ftp_data_port){
+            dynamic_port_manage->releasePort(ftp_data_port);
+            ftp_data_port=0;
         }
     }
     if(encrypt){
-        connect(data_socket, SIGNAL(encrypted()), this, SLOT(encryptedSlot()));
+        connect(data_socket,SIGNAL(encrypted()),this,SLOT(encryptedSlot()));
         FtpSslServer::setLocalCertificateAndPrivateKey(data_socket);
         data_socket->startServerEncryption();
     }
@@ -121,8 +140,8 @@ void FtpDataConnection::newConnectionSlot()
 
 void FtpDataConnection::connectedSlot()
 {
-    if (encrypt) {
-        connect(data_socket, SIGNAL(encrypted()), this, SLOT(encryptedSlot()));
+    if(encrypt){
+        connect(data_socket,SIGNAL(encrypted()),this,SLOT(encryptedSlot()));
         FtpSslServer::setLocalCertificateAndPrivateKey(data_socket);
         data_socket->startServerEncryption();
     }
@@ -130,6 +149,7 @@ void FtpDataConnection::connectedSlot()
         encryptedSlot();
     }
 }
+
 
 void FtpDataConnection::startFtpCommand()
 {

@@ -34,10 +34,21 @@ private:
     QString last_processed_command;//上一条处理的命令
     QHostAddress server_ip;
 
-    //云服务设备FTP模式
-    quint16 ftp_control_port=0;
-    quint16 ftp_data_port=0;
-
+    //IOT Device FTP模式
+    uint32_t map_port_id=0;
+    quint16  ftp_control_port=0;//FTP服务器的控制端口
+    quint16  ftp_data_port=0;//FTP服务器的数据端口
+signals:
+    void ftpIotDeviceDataConnectSignal(quint16 server_data_port);
+    void ftpIotDeviceDisconnectSignal(quint32 map_port_id,FtpControlConnection *ftp_cmd_connect);
+    //申请FTP数据通道
+    void applyFtpDataPortSignal(quint32 map_port_id,FtpControlConnection *ftp_cmd_connect);
+public slots:
+    inline void closeFtpServerSlot(quint32 map_port_id){
+        if((map_port_id==0) || (this->map_port_id==map_port_id)){
+            disconnectFromHostSlot();
+        }
+    }
 public:
     //正常服务器模式
     FtpControlConnection(QHostAddress server_ip,FtpUserList &fpt_user_list,qintptr ftp_socket_fd,DynamicPortManage *dynamic_port_manage, \
@@ -47,9 +58,10 @@ public:
         this->ftp_socket_fd=ftp_socket_fd;
         this->dynamic_port_manage=dynamic_port_manage;
     }
-    //云服务设备FTP模式
-    FtpControlConnection(QHostAddress server_ip,FtpUserList &fpt_user_list,quint16 ftp_control_port,quint16 ftp_data_port, \
+    //IOT Device FTP模式
+    FtpControlConnection(uint32_t map_port_id,QHostAddress server_ip,FtpUserList &fpt_user_list,quint16 ftp_control_port,quint16 ftp_data_port, \
                          IotThreadManage *thread_manage,QObject *parent=nullptr):IotThread(thread_manage,parent){
+        this->map_port_id=map_port_id;
         this->server_ip=server_ip;
         this->fpt_user_list=fpt_user_list;
         this->ftp_control_port=ftp_control_port;
@@ -58,28 +70,20 @@ public:
 protected:
     void run() override;
 private slots:
-    inline void ftpConnectedSlot(void){
-        connect(ftp_cmd_socket,SIGNAL(readyRead()),this,SLOT(acceptNewDataSlot()));
-        connect(ftp_cmd_socket,SIGNAL(disconnected()),this,SLOT(quit()));
-
-        currentDirectory = "/";
-        //初始化数据连接
-        dataConnection =new FtpDataConnection(server_ip,ftp_data_port,this);
-        reply("220 Welcome Login IotFtpServer");
+    inline void connectIotServerSlot(void){
+        emit applyFtpDataPortSignal(map_port_id,this);
     }
-
     void acceptNewDataSlot(void);
-    inline void disconnectFromHost(){
+    inline void disconnectFromHostSlot(){
         ftp_cmd_socket->disconnectFromHost();
     }
-    inline void reply(const QString &replyCode){
-        ftp_cmd_socket->write((replyCode + "\r\n").toUtf8());
+    inline void replySlot(const QString &replyCode){
+        ftp_cmd_socket->write(QString("%1\r\n").arg(replyCode).toUtf8());
     }
     void iotThreadExitSlot() override{
-        ftp_cmd_socket->close();
+        ftp_cmd_socket->disconnectFromHost();
     }
 private:
-
     //处理命令
     void processCommand(const QString &entire_command);
     //解析命令
@@ -109,7 +113,6 @@ private:
 
     inline QString toLocalPath(const QString &fileName) const{
         QString localPath = fileName;
-
         // Some FTP clients send backslashes.
         localPath.replace('\\', '/');
 
@@ -138,36 +141,36 @@ private:
     }
 
     inline void startOrScheduleCommand(FtpCommand *ftpCommand){
-        connect(ftpCommand, SIGNAL(reply(QString)), this, SLOT(reply(QString)));
+        connect(ftpCommand, SIGNAL(replySignal(QString)), this, SLOT(replySlot(QString)));
         if (!dataConnection->setFtpCommand(ftpCommand)) {
             delete ftpCommand;
-            reply("425 Can't open data connection.");
+            replySlot("425 Can't open data connection.");
             return;
         }
     }
-    // 激活一个新的数据连接
+    //FTP打开一个主动的数据连接
     inline void port(const QString &addressAndPort){
         QRegExp exp("\\s*(\\d+,\\d+,\\d+,\\d+),(\\d+),(\\d+)");
         exp.indexIn(addressAndPort);
         QString  client_addr = exp.cap(1).replace(',', '.');
         quint16 client_port = exp.cap(2).toUShort() * 256 + exp.cap(3).toUShort();
         dataConnection->scheduleConnectToHost(client_addr, client_port, encryptDataConnection);
-        reply("200 Command okay.");
+        replySlot("200 Command okay.");
     }
-    // Open a new passive data connection.
+    //FTP打开一个被动的数据连接
     inline void pasv(){
         int port = dataConnection->listen(encryptDataConnection);
-        reply(QString("227 Entering Passive Mode (%1,%2,%3).").arg(server_ip.toString().replace('.',',')).arg(port/256).arg(port%256));
+        replySlot(QString("227 Entering Passive Mode (%1,%2,%3).").arg(server_ip.toString().replace('.',',')).arg(port/256).arg(port%256));
     }
     // List directory contents. Equivalent to 'ls' in UNIX, or 'dir' in DOS.
     inline void list(const QString &dir, bool nameListOnly){
         startOrScheduleCommand(new FtpListCommand(this, dir, nameListOnly));
     }
-    // Retrieve a file. FTP client uses this command to download files.
+    //FTP下载命令
     inline void retr(const QString &fileName){
         startOrScheduleCommand(new FtpRetrCommand(this, fileName, seekTo()));
     }
-    // Store a file. FTP client uses this command to upload files.
+    //FTP 上传命令
     inline void stor(const QString &fileName, bool appendMode = false){
         startOrScheduleCommand(new FtpStorCommand(this, fileName, appendMode, seekTo()));
     }
@@ -181,67 +184,68 @@ private:
             } else {
                 currentDirectory = QDir::cleanPath(currentDirectory + '/' + dir);
             }
-            reply("250 Requested file action okay, completed.");
+            replySlot("250 Requested file action okay, completed.");
         } else {
-            reply("550 Requested action not taken; file unavailable.");
+            replySlot("550 Requested action not taken; file unavailable.");
         }
     }
-    // Create a directory.
+    //创建一个目录
     void mkd(const QString &dir){
         if (QDir().mkdir(dir)) {
-            reply(QString("257 \"%1\" created.").arg(dir));
+            replySlot(QString("257 \"%1\" created.").arg(dir));
         } else {
-            reply("550 Requested action not taken; file unavailable.");
+            replySlot("550 Requested action not taken; file unavailable.");
         }
     }
-    // Delete a directory (fails if directory not empty).
+    //删除一个目录，如果目录不为空删除失败
     void rmd(const QString &dir){
         if (QDir().rmdir(dir)) {
-            reply("250 Requested file action okay, completed.");
+            replySlot("250 Requested file action okay, completed.");
         } else {
-            reply("550 Requested action not taken; file unavailable.");
+            replySlot("550 Requested action not taken; file unavailable.");
         }
     }
-    // Delete a file.
+    //删除一个文件
     void dele(const QString &fileName){
         if (QDir().remove(fileName)) {
-            reply("250 Requested file action okay, completed.");
+            replySlot("250 Requested file action okay, completed.");
         } else {
-            reply("550 Requested action not taken; file unavailable.");
+            replySlot("550 Requested action not taken; file unavailable.");
         }
     }
-    // Rename a directory or file.
+    //重命名文件或者目录
     void rnto(const QString &fileName){
         QString command;
         QString command_parameters;
         parseCommand(last_processed_command, command, command_parameters);
         if ("RNFR" == command && QDir().rename(toLocalPath(command_parameters), fileName)) {
-            reply("250 Requested file action okay, completed.");
+            replySlot("250 Requested file action okay, completed.");
         } else {
-            reply("550 Requested action not taken; file unavailable.");
+            replySlot("550 Requested action not taken; file unavailable.");
         }
     }
-    // Quits the FTP session. The control connection closes.
+    //退出FTP服务器
     void quitFtp(){
-        reply("221 Quitting...");
+        replySlot("221 Quitting...");
         // If we have a running download or upload, we will wait until it's
         // finished before closing the control connection.
         if (dataConnection->ftpCommand()) {
-            connect(dataConnection->ftpCommand(), SIGNAL(destroyed()), this, SLOT(disconnectFromHost()));
-        } else {
-            disconnectFromHost();
+            connect(dataConnection->ftpCommand(), SIGNAL(destroyed()), this, SLOT(disconnectFromHostSlot()));
+        }
+        else {
+            disconnectFromHostSlot();
         }
     }
-    // Returns the size of the file.
+    //读取文件大小
     void size(const QString &fileName){
         QFileInfo fi(fileName);
         if (!fi.exists() || fi.isDir()) {
-            reply("550 Requested action not taken; file unavailable.");
+            replySlot("550 Requested action not taken; file unavailable.");
         } else {
-            reply(QString("213 %1").arg(fi.size()));
+            replySlot(QString("213 %1").arg(fi.size()));
         }
     }
-    // Enters the password.
+    //   Enters the password.
     void pass(const QString &password){
         QString command;
         QString command_parameters;
@@ -250,39 +254,39 @@ private:
         FtpUser login_user(command_parameters);
         int user_index=fpt_user_list.indexOf(login_user);
         if(user_index<0){
-            reply("530 User name or password was incorrect.");
+            replySlot("530 User name or password was incorrect.");
             return;
         }
         ftp_user=fpt_user_list.at(user_index);
         if (ftp_user.password.isEmpty() || ("USER" == command && ftp_user.userName == command_parameters && ftp_user.password == password)) {
-            reply("230 You are logged in.");
+            replySlot("230 You are logged in.");
             is_login = true;
         } else {
-            reply("530 User name or password was incorrect.");
+            replySlot("530 User name or password was incorrect.");
         }
     }
     // The client instructs the server to switch to FTPS.
     void auth(){
-        reply("234 Initializing SSL connection.");
+        replySlot("234 Initializing SSL connection.");
         FtpSslServer::setLocalCertificateAndPrivateKey(ftp_cmd_socket);
         ftp_cmd_socket->startServerEncryption();
     }
-    // Set protection level.
+    //设置连接是否加密
     void prot(const QString &protectionLevel){
         if ("C" == protectionLevel) {
             encryptDataConnection = false;
         } else if ("P" == protectionLevel) {
             encryptDataConnection = true;
         } else {
-            reply("502 Command not implemented.");
+            replySlot("502 Command not implemented.");
             return;
         }
-        reply("200 Command okay.");
+        replySlot("200 Command okay.");
     }
     // CD up one level - equivalent to "CD .."
     void cdup(){
         if ("/" == currentDirectory) {
-            reply("250 Requested file action okay, completed.");
+            replySlot("250 Requested file action okay, completed.");
         } else {
             cwd("..");
         }

@@ -25,7 +25,8 @@ private:
         QSslSocket *socket = new QSslSocket(this);
         if (socket->setSocketDescriptor(socketDescriptor)) {
             addPendingConnection(socket);
-        } else {
+        }
+        else {
             delete socket;
         }
     }

@@ -12,36 +12,38 @@ FtpStorCommand::FtpStorCommand(QObject *parent, const QString &fileName, bool ap
 
 FtpStorCommand::~FtpStorCommand()
 {
-    if (started) {
-        if (success) {
-            emit reply("226 Closing data connection.");
-        } else {
-            emit reply("451 Requested action aborted: local error in processing.");
-        }
+    if(!is_started){
+        return;
+    }
+    if(success){
+        emit replySignal("226 Closing data connection.");
+    }
+    else{
+        emit replySignal("451 Requested action aborted: local error in processing.");
     }
 }
 
 void FtpStorCommand::startImplementation()
 {
     file = new QFile(fileName, this);
-    if (!file->open(appendMode ? QIODevice::Append : QIODevice::WriteOnly)) {
+    if(!file->open(appendMode ? QIODevice::Append : QIODevice::WriteOnly)){
         deleteLater();
         return;
     }
     success = true;
-    emit reply("150 File status okay; about to open data connection.");
-    if (seekTo) {
+    emit replySignal("150 File status okay; about to open data connection.");
+    if(seekTo){
         file->seek(seekTo);
     }
-    connect(socket, SIGNAL(readyRead()), this, SLOT(acceptNextBlock()));
+    connect(ftp_data_socket, SIGNAL(readyRead()), this, SLOT(acceptNextBlockSlot()));
 }
 
-void FtpStorCommand::acceptNextBlock()
+void FtpStorCommand::acceptNextBlockSlot()
 {
-    const QByteArray &bytes = socket->readAll();
+    const QByteArray &bytes = ftp_data_socket->readAll();
     qint64 bytesWritten = file->write(bytes);
-    if (bytesWritten != bytes.size()) {
-        emit reply("451 Requested action aborted. Could not write data to file.");
+    if(bytesWritten != bytes.size()){
+        emit replySignal("451 Requested action aborted. Could not write data to file.");
         deleteLater();
     }
 }

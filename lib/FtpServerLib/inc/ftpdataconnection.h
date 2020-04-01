@@ -18,7 +18,7 @@ class FtpDataConnection : public QObject
 public:
     //普通服务器FTP模式
     explicit FtpDataConnection(DynamicPortManage *dynamic_port_manage,QObject *parent = nullptr);
-    explicit FtpDataConnection(QHostAddress server_ip,uint16_t server_port,QObject *parent = nullptr);
+    explicit FtpDataConnection(QHostAddress server_ip,uint16_t ftp_data_port,QObject *parent = nullptr);
 
     ~FtpDataConnection();
 
@@ -28,7 +28,7 @@ public:
 
     // Starts listening for new data connections. Any existing data connections
     // or commands are aborted.
-    int listen(bool encrypt);
+    int32_t listen(bool encrypt);
 
     // Sets the ftp command. This function can be called only once after each
     // call of listen().
@@ -40,17 +40,19 @@ public:
         return isSocketReady ? command : nullptr;
     }
 signals:
-
+    void connectIotServerSignal(void);
+public slots:
+    //Iot Ftp云服务器使用
+    void ftpIotDeviceDataConnectSlot(quint16 ftp_data_port);
 private slots:
-    void newConnectionSlot();
-    inline void encryptedSlot(){
+    void newConnectionSlot(void);
+    inline void encryptedSlot(void){
         isSocketReady = true;
         startFtpCommand();
     }
-    void connectedSlot();
-
+    void connectedSlot(void);
 private:
-    void startFtpCommand();
+    void startFtpCommand(void);
     FtpSslServer *data_server=nullptr;
     QSslSocket   *data_socket=nullptr;
     QPointer<FtpCommand> command;
@@ -65,7 +67,7 @@ private:
     quint16 user_port;
 
     QHostAddress server_ip;
-    quint16      server_port=0;
+    quint16      ftp_data_port=0;
 };
 #endif // FTPDATACONNECTION_H
 
