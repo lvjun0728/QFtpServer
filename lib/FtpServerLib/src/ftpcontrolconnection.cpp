@@ -97,7 +97,7 @@ void FtpControlConnection::processCommand(const QString &entire_command)
         replySlot("215 Windows");
 #endif
 #ifdef Q_OS_LINUX
-        reply("215 Linux");
+        replySlot("215 Linux");
 #endif
     } else if ("PROT" == command) {
         prot(command_parameters.toUpper());
