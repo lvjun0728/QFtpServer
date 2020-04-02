@@ -50,7 +50,7 @@ public:
             if(ba.map_port_id==0){
                 return this->user_name==ba.user_name;
             }
-            return ((this->user_name==ba.user_name) && (this->map_port_id==map_port_id));
+            return ((this->user_name==ba.user_name) && (this->map_port_id==ba.map_port_id));
         }
     };
 private:
