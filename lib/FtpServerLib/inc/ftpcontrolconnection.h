@@ -35,18 +35,26 @@ private:
     QHostAddress server_ip;
 
     //IOT Device FTP模式
+    QString  iot_user_name;
     uint32_t map_port_id=0;
     quint16  ftp_control_port=0;//FTP服务器的控制端口
     quint16  ftp_data_port=0;//FTP服务器的数据端口
 signals:
     void ftpIotDeviceDataConnectSignal(quint16 server_data_port);
-    void ftpIotDeviceDisconnectSignal(quint32 map_port_id,FtpControlConnection *ftp_cmd_connect);
+    void ftpIotDeviceDisconnectSignal(QString user_name,quint32 map_port_id,FtpControlConnection *ftp_cmd_connect);
     //申请FTP数据通道
-    void applyFtpDataPortSignal(quint32 map_port_id,FtpControlConnection *ftp_cmd_connect);
+    void applyFtpDataPortSignal(QString user_name,quint32 map_port_id,FtpControlConnection *ftp_cmd_connect);
 public slots:
-    inline void closeFtpServerSlot(quint32 map_port_id){
-        if((map_port_id==0) || (this->map_port_id==map_port_id)){
+    inline void closeFtpServerSlot(QString user_name,quint32 map_port_id){
+        if(map_port_id==0){
+            if((user_name.isNull() || (this->iot_user_name==user_name))){
+                disconnectFromHostSlot();
+            }
+            return;
+        }
+        if((this->map_port_id==map_port_id) && (this->iot_user_name==user_name)){
             disconnectFromHostSlot();
+            return;
         }
     }
 public:
@@ -59,8 +67,9 @@ public:
         this->dynamic_port_manage=dynamic_port_manage;
     }
     //IOT Device FTP模式
-    FtpControlConnection(uint32_t map_port_id,QHostAddress server_ip,FtpUserList &fpt_user_list,quint16 ftp_control_port,quint16 ftp_data_port, \
+    FtpControlConnection(const QString &user_name,uint32_t map_port_id,QHostAddress server_ip,FtpUserList &fpt_user_list,quint16 ftp_control_port,quint16 ftp_data_port, \
                          IotThreadManage *thread_manage,QObject *parent=nullptr):IotThread(thread_manage,parent){
+        this->iot_user_name=user_name;
         this->map_port_id=map_port_id;
         this->server_ip=server_ip;
         this->fpt_user_list=fpt_user_list;
@@ -71,7 +80,7 @@ protected:
     void run() override;
 private slots:
     inline void connectIotServerSlot(void){
-        emit applyFtpDataPortSignal(map_port_id,this);
+        emit applyFtpDataPortSignal(iot_user_name,map_port_id,this);
     }
     void acceptNewDataSlot(void);
     inline void disconnectFromHostSlot(){

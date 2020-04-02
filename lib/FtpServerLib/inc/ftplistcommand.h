@@ -33,11 +33,13 @@ private:
     }
 private slots:
     void listNextBatchSlot();
+    void refillSocketBuffer(qint64 bytes);
 private:
     QString        listDirectory;
     bool           nameListOnly;
     QTimer        *timer=nullptr;
     QFileInfoList *file_info_list=nullptr;
     int32_t        index=0;
+    qint64         socket_buf_len=0;//Socket底层缓冲区的大小
 };
 #endif // FTPLISTCOMMAND_H

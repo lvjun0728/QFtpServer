@@ -18,7 +18,7 @@ void FtpControlConnection::run()
     else{//FTP服务IotDevice模式
         ftp_cmd_socket->connectToHost(server_ip,ftp_control_port);
         if(!ftp_cmd_socket->waitForConnected()){
-            emit ftpIotDeviceDisconnectSignal(map_port_id,this);
+            emit ftpIotDeviceDisconnectSignal(iot_user_name,map_port_id,this);
             return;
         }
         connect(ftp_cmd_socket,SIGNAL(readyRead()),this,SLOT(acceptNewDataSlot()));
@@ -33,7 +33,7 @@ void FtpControlConnection::run()
     }
     //执行事件循环
     exec();
-    emit ftpIotDeviceDisconnectSignal(map_port_id,this);
+    emit ftpIotDeviceDisconnectSignal(iot_user_name,map_port_id,this);
 }
 
 void FtpControlConnection::acceptNewDataSlot()

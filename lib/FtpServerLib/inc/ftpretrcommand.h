@@ -15,7 +15,7 @@ public:
     explicit FtpRetrCommand(QObject *parent, const QString &fileName, qint64 seekTo = 0);
     ~FtpRetrCommand();
 private slots:
-    void refillSocketBuffer(qint64 bytes=0);
+    void refillSocketBuffer(qint64 bytes);
 private:
     void startImplementation();
     QString fileName;

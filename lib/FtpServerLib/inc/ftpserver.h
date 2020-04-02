@@ -17,7 +17,7 @@ class FtpServer:public QTcpServer
 {
     Q_OBJECT
 signals:
-    void closeFtpServerSignal(quint32 map_port_id=0);
+    void closeFtpServerSignal(QString user_name,quint32 map_port_id=0);
 private:
     IotThreadManage   *iot_thread_manage=nullptr;
     bool               dynamic_port_manage_oneself=false;
@@ -33,18 +33,24 @@ public:
         uint32_t    map_port_id;
         uint16_t    ftp_control_port;
         uint16_t    ftp_data_port;
-        FtpIotDeviceParam(uint32_t map_port_id,uint16_t ftp_control_port,uint16_t ftp_data_port){
+        QString     user_name;
+        FtpIotDeviceParam(const QString &user_name,const uint32_t map_port_id,uint16_t ftp_control_port,uint16_t ftp_data_port){
+            this->user_name=user_name;
             this->map_port_id=map_port_id;
             this->ftp_control_port=ftp_control_port;
             this->ftp_data_port=ftp_data_port;
         }
-        FtpIotDeviceParam(uint32_t map_port_id){
+        FtpIotDeviceParam(const QString &user_name,const uint32_t map_port_id){
+            this->user_name=user_name;
             this->map_port_id=map_port_id;
             this->ftp_control_port=0;
             this->ftp_data_port=0;
         }
         inline bool operator==(const FtpIotDeviceParam &ba)const{
-            return (this->map_port_id==ba.map_port_id);
+            if(ba.map_port_id==0){
+                return this->user_name==ba.user_name;
+            }
+            return ((this->user_name==ba.user_name) && (this->map_port_id==map_port_id));
         }
     };
 private:
@@ -92,38 +98,45 @@ public:
     }
 
     inline void addIotDeviceFtpServer(const FtpIotDeviceParam &param){
-        ftp_iotdevice_list.append(param);
+        if(param.map_port_id==0){//映射ID不能为0
+            return;
+        }
+        //如果已经有了则不添加
+        if(!ftp_iotdevice_list.contains(param)){
+            ftp_iotdevice_list.append(param);
+        }
     }
-    inline bool closeIotDeviceFtpServer(uint32_t map_port_id){
-        FtpIotDeviceParam param(map_port_id);
-        int32_t index=ftp_iotdevice_list.indexOf(param);
+    //当map_port_id==0时代码任意ID都匹配
+    inline bool closeIotDeviceFtpServer(const QString &user_name,uint32_t map_port_id=0){
+        int32_t index=ftp_iotdevice_list.indexOf(FtpIotDeviceParam(user_name,map_port_id));
         if(index<0){
             return false;
         }
         ftp_iotdevice_list.removeAt(index);
-        emit closeFtpServerSignal(map_port_id);
+        emit closeFtpServerSignal(user_name,map_port_id);
         return true;
     }
+    inline void closeAllIotDeviceFtpServer(void){
+        closeFtpServerSignal(QString(),0);
+    }
 
-    bool startIotDeviceFtpServer(uint32_t map_port_id,uint16_t server_port){
-        FtpIotDeviceParam param(map_port_id);
-        int32_t index=ftp_iotdevice_list.indexOf(param);
+    bool startIotDeviceFtpServer(const QString &user_name,uint32_t map_port_id,uint16_t server_port){
+        int32_t index=ftp_iotdevice_list.indexOf(FtpIotDeviceParam(user_name,map_port_id));
         if(index<0){
             return false;
         }
-        FtpControlConnection *control_connection=new FtpControlConnection(map_port_id,server_ip,fpt_user_list,server_port,ftp_iotdevice_list.at(index).ftp_data_port,iot_thread_manage);
-        connect(this,SIGNAL(closeFtpServerSignal(quint32)),control_connection,SLOT(closeFtpServerSlot(quint32)),Qt::QueuedConnection);
-        connect(control_connection,SIGNAL(ftpIotDeviceDisconnectSignal(quint32,FtpControlConnection *)),this,SLOT(ftpIotDeviceDisconnectSlot(quint32,FtpControlConnection *)),Qt::QueuedConnection);
-        connect(control_connection,SIGNAL(applyFtpDataPortSignal(quint32,FtpControlConnection *)),this,SLOT(applyFtpDataPortSlot(quint32,FtpControlConnection *)),Qt::QueuedConnection);
+        FtpControlConnection *control_connection=new FtpControlConnection(user_name,map_port_id,server_ip,fpt_user_list,server_port,ftp_iotdevice_list.at(index).ftp_data_port,iot_thread_manage);
+        connect(this,SIGNAL(closeFtpServerSignal(QString,quint32)),control_connection,SLOT(closeFtpServerSlot(QString,quint32)),Qt::QueuedConnection);
+        connect(control_connection,SIGNAL(ftpIotDeviceDisconnectSignal(QString,quint32,FtpControlConnection *)),this,SLOT(ftpIotDeviceDisconnectSlot(QString,quint32,FtpControlConnection *)),Qt::QueuedConnection);
+        connect(control_connection,SIGNAL(applyFtpDataPortSignal(QString,quint32,FtpControlConnection *)),this,SLOT(applyFtpDataPortSlot(QString,quint32,FtpControlConnection *)),Qt::QueuedConnection);
 
         control_connection->start();
         control_connection->moveToThread(control_connection);
         ftp_iotdevice_list[index].ftp_cmd_connect_list.append(control_connection);
         return true;
     }
-    bool connectFtpServerDataPort(uint32_t map_port_id,uint16_t server_port){
-        FtpIotDeviceParam param(map_port_id);
-        int32_t index=ftp_iotdevice_list.indexOf(param);
+    bool connectFtpServerDataPort(const QString &user_name,uint32_t map_port_id,uint16_t server_port){
+        int32_t index=ftp_iotdevice_list.indexOf(FtpIotDeviceParam(user_name,map_port_id));
         if(index<0){
             return false;
         }
@@ -144,7 +157,7 @@ public:
 protected:
     void incomingConnection(qintptr socketDescriptor){
         FtpControlConnection *control_connection=new FtpControlConnection(server_ip,fpt_user_list,socketDescriptor,dynamic_port_manage,iot_thread_manage);
-        connect(this,SIGNAL(closeFtpServerSignal(quint32)),control_connection,SLOT(closeFtpServerSlot(quint32)));
+        connect(this,SIGNAL(closeFtpServerSignal(QString,quint32)),control_connection,SLOT(closeFtpServerSlot(QString,quint32)));
         control_connection->start();
         control_connection->moveToThread(control_connection);
     }
@@ -166,17 +179,15 @@ public slots:
         }
     }
 private slots:
-    void ftpIotDeviceDisconnectSlot(quint32 map_port_id,FtpControlConnection *ftp_cmd_connect){
-        FtpIotDeviceParam param(map_port_id);
-        int32_t index=ftp_iotdevice_list.indexOf(param);
+    void ftpIotDeviceDisconnectSlot(QString user_name,quint32 map_port_id,FtpControlConnection *ftp_cmd_connect){
+        int32_t index=ftp_iotdevice_list.indexOf(FtpIotDeviceParam(user_name,map_port_id));
         if(index<0){
             return;
         }
         ftp_iotdevice_list[index].ftp_cmd_connect_list.removeOne(ftp_cmd_connect);
     }
-    inline void applyFtpDataPortSlot(quint32 map_port_id,FtpControlConnection *ftp_cmd_connect){
-        FtpIotDeviceParam param(map_port_id);
-        int32_t index=ftp_iotdevice_list.indexOf(param);
+    inline void applyFtpDataPortSlot(QString user_name,quint32 map_port_id,FtpControlConnection *ftp_cmd_connect){
+        int32_t index=ftp_iotdevice_list.indexOf(FtpIotDeviceParam(user_name,map_port_id));
         if(index<0){
             qWarning()<<"没有到找到存在的FTP数据连接";
             return ;

@@ -27,6 +27,9 @@ void FtpListCommand::startImplementation()
         *file_info_list = QDir(listDirectory).entryInfoList();
     }
 
+    socket_buf_len=0;
+    connect(ftp_data_socket, SIGNAL(bytesWritten(qint64)), this, SLOT(refillSocketBuffer(qint64)));
+
     // Start the timer.
     timer = new QTimer(this);
     connect(timer, SIGNAL(timeout()), this, SLOT(listNextBatchSlot()));
@@ -94,8 +97,9 @@ void FtpListCommand::listNextBatchSlot()
     // List next 10 items.
     int32_t stop = qMin(index + 10, file_info_list->size());
     while (index < stop) {
-        QString line = fileListingString(file_info_list->at(index));
-        ftp_data_socket->write(line.toUtf8());
+        QByteArray line_buf = fileListingString(file_info_list->at(index)).toUtf8();
+        ftp_data_socket->write(line_buf);
+        socket_buf_len+=line_buf.size();
         index++;
     }
 
@@ -104,8 +108,15 @@ void FtpListCommand::listNextBatchSlot()
         delete file_info_list;
         file_info_list=nullptr;
         timer->stop();
-        //在断开连接时保证所有数据写入Socket
-        ftp_data_socket->flush();
+        delete timer;
+        timer=nullptr;
+    }
+}
+
+void FtpListCommand::refillSocketBuffer(qint64 bytes)
+{
+    socket_buf_len-=bytes;
+    if((timer==nullptr) && (socket_buf_len<=0)){
         ftp_data_socket->disconnectFromHost();
     }
 }

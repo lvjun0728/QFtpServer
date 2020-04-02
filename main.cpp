@@ -21,14 +21,18 @@ int main(int argc, char *argv[])
     FtpUser ftp_user2("/home/lvjun/ftp","lvjun1","123456");
     FtpUser ftp_user3("/home/lvjun/ftp","lvjun1","123456");
 #endif
+    uint16_t ftp_control_port=6025;
+    QHostAddress ftp_ip=QHostAddress("192.168.0.168");
+
     FtpUserList user_list;
     user_list.append(ftp_user1);
     user_list.append(ftp_user2);
     user_list.append(ftp_user3);
-    FtpServer ftp_server(QHostAddress::LocalHost,user_list,9000,9001,30,thread_manage);
+    FtpServer ftp_server(ftp_ip,user_list,ftp_control_port,6026,1,thread_manage);
     if(!ftp_server.initOk){
         qDebug()<<"初始化错误";
         exit(-1);
     }
+    qDebug()<<"FTP服务已经启动"<<"IP:"<<ftp_ip<<"端口"<<ftp_control_port;
     return a.exec();
 }
