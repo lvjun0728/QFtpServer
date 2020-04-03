@@ -22,7 +22,7 @@ int main(int argc, char *argv[])
     FtpUser ftp_user3("/home/lvjun/ftp","lvjun1","123456");
 #endif
     uint16_t ftp_control_port=6025;
-    QHostAddress ftp_ip=QHostAddress("192.168.0.168");
+    QHostAddress ftp_ip=QHostAddress("192.168.0.166");
 
     FtpUserList user_list;
     user_list.append(ftp_user1);
