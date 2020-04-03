@@ -19,12 +19,18 @@ DEFINES += QT_DEPRECATED_WARNINGS
 include(./lib/FtpServerLib/FtpServerLib.pri)
 
 SOURCES += \
+        dynamicportmanage.cpp \
         main.cpp
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /home/lvjun/qt_test/$${TARGET}
 !isEmpty(target.path): INSTALLS += target
+
+HEADERS += \
+    dynamicportmanage.h \
+    iotthread.h \
+    iotthreadmanage.h
 
 
 
