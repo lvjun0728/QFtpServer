@@ -117,7 +117,8 @@ public:
         return true;
     }
     inline void closeAllIotDeviceFtpServer(void){
-        closeFtpServerSignal(QString(),0);
+        ftp_iotdevice_list.clear();
+        emit closeFtpServerSignal(QString(),0);
     }
 
     bool startIotDeviceFtpServer(const QString &user_name,uint32_t map_port_id,uint16_t server_port){
@@ -149,6 +150,7 @@ public:
     }
 
     ~FtpServer(){
+        closeAllIotDeviceFtpServer();
         if(dynamic_port_manage_oneself && dynamic_port_manage){
             delete dynamic_port_manage;
             dynamic_port_manage=nullptr;
