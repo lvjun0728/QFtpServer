@@ -32,9 +32,10 @@ private:
     FtpDataConnection *dataConnection=nullptr;
     QString currentDirectory;
     QString last_processed_command;//上一条处理的命令
-    QHostAddress server_ip;
+    QHostAddress server_ip;//服务器IP地址
 
     //IOT Device FTP模式
+    QHostAddress ftp_server_ip;//FTP 数据协议服务地址
     QString  iot_user_name;
     uint32_t map_port_id=0;
     quint16  ftp_control_port=0;//FTP服务器的控制端口
@@ -67,11 +68,12 @@ public:
         this->dynamic_port_manage=dynamic_port_manage;
     }
     //IOT Device FTP模式
-    FtpControlConnection(const QString &user_name,uint32_t map_port_id,QHostAddress server_ip,FtpUserList &fpt_user_list,quint16 ftp_control_port,quint16 ftp_data_port, \
-                         IotThreadManage *thread_manage,QObject *parent=nullptr):IotThread(thread_manage,parent){
+    FtpControlConnection(const QString &user_name,uint32_t map_port_id,const QHostAddress server_ip,const QHostAddress ftp_server_ip,FtpUserList &fpt_user_list, \
+                         quint16 ftp_control_port,quint16 ftp_data_port,IotThreadManage *thread_manage,QObject *parent=nullptr):IotThread(thread_manage,parent){
         this->iot_user_name=user_name;
         this->map_port_id=map_port_id;
         this->server_ip=server_ip;
+        this->ftp_server_ip=ftp_server_ip;
         this->fpt_user_list=fpt_user_list;
         this->ftp_control_port=ftp_control_port;
         this->ftp_data_port=ftp_data_port;
@@ -169,7 +171,7 @@ private:
     //FTP打开一个被动的数据连接
     inline void pasv(){
         int port = dataConnection->listen(encryptDataConnection);
-        replySlot(QString("227 Entering Passive Mode (%1,%2,%3).").arg(server_ip.toString().replace('.',',')).arg(port/256).arg(port%256));
+        replySlot(QString("227 Entering Passive Mode (%1,%2,%3).").arg(ftp_server_ip.toString().replace('.',',')).arg(port/256).arg(port%256));
     }
     // List directory contents. Equivalent to 'ls' in UNIX, or 'dir' in DOS.
     inline void list(const QString &dir, bool nameListOnly){

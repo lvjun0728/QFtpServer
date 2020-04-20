@@ -17,9 +17,12 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 include(./lib/FtpServerLib/FtpServerLib.pri)
+include(./lib/QtServerLib/QtServerLib.pri)
 
 SOURCES += \
         dynamicportmanage.cpp \
+        iotlogcat.cpp \
+        iotsystemserver.cpp \
         main.cpp
 
 # Default rules for deployment.
@@ -29,10 +32,15 @@ else: unix:!android: target.path = /home/lvjun/qt_test/$${TARGET}
 
 HEADERS += \
     dynamicportmanage.h \
+    iotlogcat.h \
+    iotsystemserver.h \
     iotthread.h \
     iotthreadmanage.h
 
 
-
+CONFIG(release, debug|release){
+    DEFINES += IOT_SERVER_LOG_FILE
+    DEFINES += QT_MESSAGELOGCONTEXT
+}
 
 

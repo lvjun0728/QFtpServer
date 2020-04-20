@@ -24,10 +24,11 @@ signals:
     //线程退出前发送此信号,发送者:线程
     void threadExitSignal(QThread *thread);
 
+    void exitThreadManageSignal(void);
     /***************************************************************/
     //线程管理者已经退出
     void threadManageExitSignal(QThread *thread);
-public:
+public slots:
     //退出全局所以线程,并关闭线程管理器
     void closeAllThreadSlot(void){
         close_mark=true;
@@ -55,6 +56,7 @@ private:
     void run() override{
         connect(this,SIGNAL(addThreadSignal(QThread *,QString)),this,SLOT(addThreadSlot(QThread *,QString)));
         connect(this,SIGNAL(threadExitSignal(QThread *)),this,SLOT(threadExitSlot(QThread *)));
+        connect(this,SIGNAL(exitThreadManageSignal()),this,SLOT(closeAllThreadSlot()));
         exec();
         emit threadManageExitSignal(this);
     }

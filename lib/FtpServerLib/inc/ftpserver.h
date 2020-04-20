@@ -22,8 +22,8 @@ private:
     IotThreadManage   *iot_thread_manage=nullptr;
     bool               dynamic_port_manage_oneself=false;
     DynamicPortManage *dynamic_port_manage=nullptr;
-    QHostAddress       server_ip;
-    FtpUserList        fpt_user_list;
+    QHostAddress       server_ip;//服务器IP地址
+    FtpUserList        fpt_user_list;//FTP用户列表
 public:
     //云服务设备FTP模式
     class FtpIotDeviceParam{
@@ -121,12 +121,18 @@ public:
         emit closeFtpServerSignal(QString(),0);
     }
 
-    bool startIotDeviceFtpServer(const QString &user_name,uint32_t map_port_id,uint16_t server_port){
+    //FTP数据汇报地址和实际FTP服务器地址一致
+    inline bool startIotDeviceFtpServer(const QString &user_name,uint32_t map_port_id,uint16_t server_port){
+        return startIotDeviceFtpServer(server_ip,user_name,map_port_id,server_port);
+    }
+
+    //FTP服务器地址和数据汇报地址不一致
+    bool startIotDeviceFtpServer(QHostAddress ftp_server_ip,const QString &user_name,uint32_t map_port_id,uint16_t server_port){
         int32_t index=ftp_iotdevice_list.indexOf(FtpIotDeviceParam(user_name,map_port_id));
         if(index<0){
             return false;
         }
-        FtpControlConnection *control_connection=new FtpControlConnection(user_name,map_port_id,server_ip,fpt_user_list,server_port,ftp_iotdevice_list.at(index).ftp_data_port,iot_thread_manage);
+        FtpControlConnection *control_connection=new FtpControlConnection(user_name,map_port_id,server_ip,ftp_server_ip,fpt_user_list,server_port,ftp_iotdevice_list.at(index).ftp_data_port,iot_thread_manage);
         connect(this,SIGNAL(closeFtpServerSignal(QString,quint32)),control_connection,SLOT(closeFtpServerSlot(QString,quint32)),Qt::QueuedConnection);
         connect(control_connection,SIGNAL(ftpIotDeviceDisconnectSignal(QString,quint32,FtpControlConnection *)),this,SLOT(ftpIotDeviceDisconnectSlot(QString,quint32,FtpControlConnection *)),Qt::QueuedConnection);
         connect(control_connection,SIGNAL(applyFtpDataPortSignal(QString,quint32,FtpControlConnection *)),this,SLOT(applyFtpDataPortSlot(QString,quint32,FtpControlConnection *)),Qt::QueuedConnection);
@@ -136,6 +142,8 @@ public:
         ftp_iotdevice_list[index].ftp_cmd_connect_list.append(control_connection);
         return true;
     }
+
+
     bool connectFtpServerDataPort(const QString &user_name,uint32_t map_port_id,uint16_t server_port){
         int32_t index=ftp_iotdevice_list.indexOf(FtpIotDeviceParam(user_name,map_port_id));
         if(index<0){
