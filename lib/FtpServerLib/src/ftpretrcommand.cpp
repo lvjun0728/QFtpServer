@@ -31,7 +31,13 @@ void FtpRetrCommand::startImplementation()
     if (seekTo) {
         file->seek(seekTo);
     }
-    connect(ftp_data_socket, SIGNAL(bytesWritten(qint64)), this, SLOT(refillSocketBuffer(qint64)));
+    //如果是加密模式，需要连接加密写入信号
+    if(is_started){
+        connect(ftp_data_socket, SIGNAL(encryptedBytesWritten(qint64)), this, SLOT(refillSocketBuffer(qint64)));
+    }
+    else{
+        connect(ftp_data_socket, SIGNAL(bytesWritten(qint64)), this, SLOT(refillSocketBuffer(qint64)));
+    }
     QByteArray read_buf=file->read(64*1024);
     socket_buf_len+=read_buf.size();
     ftp_data_socket->write(read_buf);

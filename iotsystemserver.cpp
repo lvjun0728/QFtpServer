@@ -23,8 +23,8 @@ void IotSystemServer::start()
     FtpUser ftp_user2("/home/lvjun/ftp","lvjun1","123456");
     FtpUser ftp_user3("/home/lvjun/ftp","lvjun1","123456");
 #endif
-    uint16_t ftp_control_port=10000;
-    QHostAddress ftp_ip=QHostAddress("192.168.0.166");
+    uint16_t ftp_control_port=2003;
+    QHostAddress ftp_ip=QHostAddress("192.168.0.121");
 
     FtpUserList user_list;
     user_list.append(ftp_user1);

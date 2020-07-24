@@ -63,6 +63,7 @@ public:
     FtpControlConnection(QHostAddress server_ip,FtpUserList &fpt_user_list,qintptr ftp_socket_fd,DynamicPortManage *dynamic_port_manage, \
                          IotThreadManage *thread_manage,QObject *parent=nullptr):IotThread(thread_manage,parent){
         this->server_ip=server_ip;
+        this->ftp_server_ip=server_ip;
         this->fpt_user_list=fpt_user_list;
         this->ftp_socket_fd=ftp_socket_fd;
         this->dynamic_port_manage=dynamic_port_manage;
@@ -77,6 +78,13 @@ public:
         this->fpt_user_list=fpt_user_list;
         this->ftp_control_port=ftp_control_port;
         this->ftp_data_port=ftp_data_port;
+    }
+    ~FtpControlConnection() override{
+        bool state=false;
+        while(!state){
+            exit();
+            state= wait(1000);
+        }
     }
 protected:
     void run() override;

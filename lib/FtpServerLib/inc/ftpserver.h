@@ -59,7 +59,7 @@ public:
     bool initOk=false;
     //普通FTP模式
     explicit FtpServer(const QHostAddress server_ip,const FtpUserList &user_list,quint16 control_port,quint16 data_port_start,quint16 data_port_count,IotThreadManage *iot_thread_manage,QObject *parent=nullptr):QTcpServer(parent),fpt_user_list(user_list){
-        if(server_ip.isNull() || (iot_thread_manage==nullptr)){
+        if(server_ip.isNull() || (!iot_thread_manage)){
             return;
         }
         if(!listen(QHostAddress::AnyIPv4,control_port)){//绑定IP V4端口
@@ -78,12 +78,13 @@ public:
     }
     //普通FTP模式
     explicit FtpServer(const QHostAddress server_ip,const FtpUserList &fpt_user_list,uint16_t control_port,DynamicPortManage *dynamic_port_manage,IotThreadManage *iot_thread_manage,QObject *parent=nullptr):QTcpServer(parent){
-        if(server_ip.isNull() || (dynamic_port_manage==nullptr) || (!dynamic_port_manage->isInitOk()) || (iot_thread_manage==nullptr)){
+        if(server_ip.isNull() || (!dynamic_port_manage) || (!dynamic_port_manage->isInitOk()) || (!iot_thread_manage)){
             return;
         }
         if(!listen(QHostAddress::AnyIPv4,control_port)){//绑定IP V4端口
             return;
         }
+        dynamic_port_manage_oneself=false;
         this->server_ip=server_ip;
         this->fpt_user_list=fpt_user_list;
         this->dynamic_port_manage=dynamic_port_manage;
