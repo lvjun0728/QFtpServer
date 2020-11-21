@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file>4758028_xinda.leds-control.com.key</file>
+        <file>4758028_xinda.leds-control.com.pem</file>
+    </qresource>
+</RCC>

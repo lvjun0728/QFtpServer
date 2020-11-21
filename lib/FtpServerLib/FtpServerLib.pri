@@ -3,9 +3,6 @@ INCLUDEPATH += \
     $$PWD/inc
 
 
-RESOURCES += \
-    $$PWD/certificates.qrc
-
 HEADERS += \
     $$PWD/inc/FtpUser.h \
     $$PWD/inc/ftpcommand.h \

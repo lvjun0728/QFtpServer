@@ -144,7 +144,11 @@ private:
         // Note we do this **before** prepending the root path, in order to avoid
         // "jailbreaking" out of the "chroot".
         QStringList components;
+#if (QT_VERSION <= QT_VERSION_CHECK(5,15,0))
         foreach (const QString &component, localPath.split('/', QString::SkipEmptyParts)) {
+#else
+        foreach (const QString &component, localPath.split('/', Qt::SkipEmptyParts)) {
+#endif
             if (component == "..") {
                 if (!components.isEmpty()) {
                     components.pop_back();

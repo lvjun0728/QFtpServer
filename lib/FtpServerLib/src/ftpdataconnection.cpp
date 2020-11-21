@@ -109,8 +109,8 @@ void FtpDataConnection::ftpIotDeviceDataConnectSlot(quint16 server_data_port)
         return;
     }
     if(encrypt){
-        connect(data_socket,SIGNAL(encrypted()),this,SLOT(encryptedSlot()));
         FtpSslServer::setLocalCertificateAndPrivateKey(data_socket);
+        connect(data_socket,SIGNAL(encrypted()),this,SLOT(encryptedSlot()));
         data_socket->startServerEncryption();
     }
     else {
@@ -129,8 +129,8 @@ void FtpDataConnection::newConnectionSlot()
         }
     }
     if(encrypt){
-        connect(data_socket,SIGNAL(encrypted()),this,SLOT(encryptedSlot()));
         FtpSslServer::setLocalCertificateAndPrivateKey(data_socket);
+        connect(data_socket,SIGNAL(encrypted()),this,SLOT(encryptedSlot()));
         data_socket->startServerEncryption();
     }
     else {
@@ -141,8 +141,8 @@ void FtpDataConnection::newConnectionSlot()
 void FtpDataConnection::connectedSlot()
 {
     if(encrypt){
-        connect(data_socket,SIGNAL(encrypted()),this,SLOT(encryptedSlot()));
         FtpSslServer::setLocalCertificateAndPrivateKey(data_socket);
+        connect(data_socket,SIGNAL(encrypted()),this,SLOT(encryptedSlot()));
         data_socket->startServerEncryption();
     }
     else {

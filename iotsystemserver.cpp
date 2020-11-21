@@ -1,7 +1,7 @@
 ﻿#include "iotsystemserver.h"
 #include "QDir"
 #include <iotlogcat.h>
-
+#include <QStandardPaths>
 
 //服务开始
 void IotSystemServer::start()
@@ -14,9 +14,16 @@ void IotSystemServer::start()
     thread_manage->moveToThread(thread_manage);
 
 #ifdef Q_OS_WIN
-    FtpUser ftp_user1("C:/Users/lvjun/Desktop/ftp","lvjun","123456");
-    FtpUser ftp_user2("C:/Users/lvjun/Desktop/ftp","lvjun1","123456");
-    FtpUser ftp_user3("C:/Users/lvjun/Desktop/ftp","lvjun2","123456");
+    QStringList desktop_path=QStandardPaths::standardLocations(QStandardPaths::DesktopLocation);
+    FtpUserList user_list;
+    if(desktop_path.size()){
+        FtpUser ftp_user1(desktop_path.at(0),"ftp","123456");
+        user_list.append(ftp_user1);
+    }
+    else{
+        FtpUser ftp_user1("D:/","ftp","123456");
+        user_list.append(ftp_user1);
+    }
 #endif
 #ifdef Q_OS_LINUX
     FtpUser ftp_user1("/home/lvjun/ftp","lvjun","123456");
@@ -24,12 +31,8 @@ void IotSystemServer::start()
     FtpUser ftp_user3("/home/lvjun/ftp","lvjun1","123456");
 #endif
     uint16_t ftp_control_port=2003;
-    QHostAddress ftp_ip=QHostAddress("192.168.0.121");
+    QHostAddress ftp_ip=QHostAddress("127.0.0.1");
 
-    FtpUserList user_list;
-    user_list.append(ftp_user1);
-    user_list.append(ftp_user2);
-    user_list.append(ftp_user3);
     ftp_server=new FtpServer(ftp_ip,user_list,ftp_control_port,10001,1000,thread_manage);
     if(!ftp_server->initOk){
         qCritical()<<"初始化错误";

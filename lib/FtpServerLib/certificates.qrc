@@ -1,6 +1,0 @@
-<RCC>
-    <qresource prefix="/">
-        <file>cacert.pem</file>
-        <file>privkey.pem</file>
-    </qresource>
-</RCC>

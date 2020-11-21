@@ -18,6 +18,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 include(./lib/FtpServerLib/FtpServerLib.pri)
 include(./lib/QtServerLib/QtServerLib.pri)
+include(./lib/SslKeyManageLib/SslKeyManageLib.pri)
 
 SOURCES += \
         dynamicportmanage.cpp \
